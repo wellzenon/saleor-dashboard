@@ -1,5 +1,5 @@
 import { IMessageContext } from "@saleor/components/messages";
-import { DEMO_MODE } from "@saleor/config";
+import { APP_DEFAULT_URI, APP_MOUNT_URI, DEMO_MODE } from "@saleor/config";
 import { User } from "@saleor/fragments/types/User";
 import { useAuth, useAuthState } from "@saleor/sdk";
 import {
@@ -21,6 +21,7 @@ import { FetchResult } from "apollo-link";
 import { MutableRefObject, useEffect, useRef } from "react";
 import { useQuery } from "react-apollo";
 import { IntlShape } from "react-intl";
+import urlJoin from "url-join";
 
 import { userDetailsQuery } from "../queries";
 import { UserDetails } from "../types/UserDetails";
@@ -33,6 +34,10 @@ export interface RequestExternalLoginInput {
 export interface ExternalLoginInput {
   code: string;
   state: string;
+}
+
+export interface RequestExternalLogoutInput {
+  returnTo: string;
 }
 
 export interface UseAuthProvider {
@@ -105,10 +110,23 @@ export function useAuthProvider({
   });
 
   const handleLogout = async () => {
-    await logout();
+    const result = await logout({
+      input: JSON.stringify({
+        returnTo: urlJoin(
+          window.location.origin,
+          APP_MOUNT_URI === APP_DEFAULT_URI ? "" : APP_MOUNT_URI
+        )
+      } as RequestExternalLogoutInput)
+    });
 
     if (isCredentialsManagementAPISupported) {
       navigator.credentials.preventSilentAccess();
+    }
+
+    const errors = result?.errors || [];
+    const data = result?.data?.externalLogout?.logoutData;
+    if (!errors.length && data) {
+      window.location.href = JSON.parse(data || "").logoutUrl;
     }
   };
 

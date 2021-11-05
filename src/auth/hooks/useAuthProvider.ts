@@ -124,9 +124,11 @@ export function useAuthProvider({
     }
 
     const errors = result?.errors || [];
-    const data = result?.data?.externalLogout?.logoutData;
-    if (!errors.length && data) {
-      window.location.href = JSON.parse(data || "").logoutUrl;
+    const logoutUrl = JSON.parse(
+      result?.data?.externalLogout?.logoutData || "{}"
+    ).logoutUrl;
+    if (!errors.length && logoutUrl) {
+      window.location.href = logoutUrl;
     }
   };
 

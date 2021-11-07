@@ -29,7 +29,6 @@ export function saveCredentials(
 
   if (isSupported) {
     const cred = new PasswordCredential({
-      // iconURL: user.avatar ? user.avatar.url : undefined,
       id: user.email,
       name: user.firstName ? `${user.firstName} ${user.lastName}` : undefined,
       password

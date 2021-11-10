@@ -7,7 +7,7 @@ import {
   saveCredentials
 } from "@saleor/utils/credentialsManagement";
 import ApolloClient from "apollo-client";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useQuery } from "react-apollo";
 import { IntlShape } from "react-intl";
 import urlJoin from "url-join";
@@ -42,15 +42,15 @@ export function useAuthProvider({
   } = useAuth();
   const { authenticated, authenticating } = useAuthState();
 
-  const autologinPromise = useRef<Promise<any>>();
-
   useEffect(() => {
-    autologinPromise.current = loginWithCredentialsManagementAPI(handleLogin);
-  }, []);
+    if (!authenticated && !authenticating) {
+      loginWithCredentialsManagementAPI(handleLogin);
+    }
+  }, [authenticated, authenticating]);
 
   const userDetails = useQuery<UserDetails>(userDetailsQuery, {
     client: apolloClient,
-    skip: !authenticated || authenticating
+    skip: !authenticated
   });
 
   const handleLogout = async () => {
@@ -67,10 +67,14 @@ export function useAuthProvider({
       navigator.credentials.preventSilentAccess();
     }
 
-    const errors = result?.errors || [];
+    if (!result) {
+      return;
+    }
+
+    const errors = result.errors || [];
     const logoutUrl = JSON.parse(
-      result?.data?.externalLogout?.logoutData || "{}"
-    ).logoutUrl;
+      result.data?.externalLogout?.logoutData || null
+    )?.logoutUrl;
     if (!errors.length && logoutUrl) {
       window.location.href = logoutUrl;
     }
@@ -81,10 +85,6 @@ export function useAuthProvider({
       email,
       password
     });
-
-    if (result?.data.tokenCreate.errors.length > 0) {
-      logout();
-    }
 
     if (result && !result.data.tokenCreate.errors.length) {
       if (DEMO_MODE) {
@@ -117,10 +117,6 @@ export function useAuthProvider({
       input: JSON.stringify(input)
     });
 
-    if (result?.data?.externalObtainAccessTokens.errors.length > 0) {
-      logout();
-    }
-
     if (result && !result.data?.externalObtainAccessTokens.errors.length) {
       if (DEMO_MODE) {
         displayDemoMessage(intl, notify);
@@ -138,7 +134,6 @@ export function useAuthProvider({
     setPassword,
     authenticating,
     authenticated,
-    user: userDetails.data?.me,
-    autologinPromise
+    user: userDetails.data?.me
   };
 }

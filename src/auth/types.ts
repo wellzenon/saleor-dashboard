@@ -9,7 +9,6 @@ import {
   UserFragment
 } from "@saleor/sdk/dist/apollo/types";
 import { FetchResult } from "apollo-link";
-import { MutableRefObject } from "react";
 
 export interface RequestExternalLoginInput {
   redirectUri: string;
@@ -58,7 +57,6 @@ export interface UserContext {
     FetchResult<SetPasswordMutation, Record<string, any>, Record<string, any>>
   >;
   user?: User;
-  autologinPromise?: MutableRefObject<Promise<any>>;
   authenticating: boolean;
   authenticated: boolean;
 }

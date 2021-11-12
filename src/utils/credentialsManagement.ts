@@ -1,4 +1,4 @@
-import { UserFragment } from "@saleor/sdk/dist/apollo/types";
+import { LoginData } from "@saleor/sdk";
 
 export const isSupported = !!(
   navigator?.credentials?.preventSilentAccess && window.PasswordCredential
@@ -22,7 +22,7 @@ export async function login<T>(
 }
 
 export function saveCredentials(
-  user: UserFragment,
+  user: LoginData["user"],
   password: string
 ): Promise<CredentialType | null> {
   let result: Promise<CredentialType | null>;

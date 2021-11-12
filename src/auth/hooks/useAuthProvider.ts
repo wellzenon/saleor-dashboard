@@ -37,8 +37,7 @@ export function useAuthProvider({
     login,
     getExternalAuthUrl,
     getExternalAccessToken,
-    logout,
-    setPassword
+    logout
   } = useAuth();
   const { authenticated, authenticating } = useAuthState();
 
@@ -131,7 +130,6 @@ export function useAuthProvider({
     requestLoginByExternalPlugin: handleRequestExternalLogin,
     loginByExternalPlugin: handleExternalLogin,
     logout: handleLogout,
-    setPassword,
     authenticating,
     authenticated,
     user: userDetails.data?.me

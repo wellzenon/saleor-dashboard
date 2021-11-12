@@ -1,14 +1,9 @@
 import { User } from "@saleor/fragments/types/User";
 import {
-  AccountErrorFragment,
-  CreateToken,
-  ExternalAuthenticationUrl,
-  ExternalObtainAccessTokens,
-  MutationSetPasswordArgs,
-  SetPasswordMutation,
-  UserFragment
-} from "@saleor/sdk/dist/apollo/types";
-import { FetchResult } from "apollo-link";
+  GetExternalAccessTokenData,
+  GetExternalAuthUrlData,
+  LoginData
+} from "@saleor/sdk";
 
 export interface RequestExternalLoginInput {
   redirectUri: string;
@@ -24,38 +19,16 @@ export interface RequestExternalLogoutInput {
 }
 
 export interface UserContext {
-  login: (
-    username: string,
-    password: string
-  ) => Promise<
-    Pick<CreateToken, "csrfToken" | "token"> & {
-      errors: AccountErrorFragment[];
-      user: UserFragment;
-    }
-  >;
+  login: (username: string, password: string) => Promise<LoginData>;
   loginByExternalPlugin: (
     pluginId: string,
     input: ExternalLoginInput
-  ) => Promise<
-    Pick<ExternalObtainAccessTokens, "csrfToken" | "token"> & {
-      user: UserFragment;
-      errors: AccountErrorFragment[];
-    }
-  >;
+  ) => Promise<GetExternalAccessTokenData>;
   logout: () => Promise<void>;
   requestLoginByExternalPlugin: (
     pluginId: string,
     input: RequestExternalLoginInput
-  ) => Promise<
-    Pick<ExternalAuthenticationUrl, "authenticationData"> & {
-      errors: AccountErrorFragment[];
-    }
-  >;
-  setPassword: (
-    opts: MutationSetPasswordArgs
-  ) => Promise<
-    FetchResult<SetPasswordMutation, Record<string, any>, Record<string, any>>
-  >;
+  ) => Promise<GetExternalAuthUrlData>;
   user?: User;
   authenticating: boolean;
   authenticated: boolean;

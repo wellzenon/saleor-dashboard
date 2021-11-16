@@ -10,7 +10,13 @@ export interface FormProps<TData, TErrors> {
 }
 
 function Form<TData, TErrors>(props: FormProps<TData, TErrors>) {
-  const { children, initial, resetOnSubmit, onSubmit, confirmLeave } = props;
+  const {
+    children,
+    initial,
+    resetOnSubmit,
+    onSubmit,
+    confirmLeave = false
+  } = props;
   const renderProps = useForm(initial, onSubmit, { confirmLeave });
 
   function handleSubmit(event?: React.FormEvent<any>, cb?: () => void) {

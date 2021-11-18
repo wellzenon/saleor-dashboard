@@ -23,7 +23,6 @@ const useStyles = makeStyles(
       marginLeft: AVATAR_MARGIN
     },
     colPrice: {
-      textAlign: "right",
       width: 120
     },
     colQuantity: {
@@ -36,7 +35,6 @@ const useStyles = makeStyles(
       width: 120
     },
     colTotal: {
-      textAlign: "right",
       width: 120
     },
     infoLabel: {
@@ -103,7 +101,7 @@ const TableLine: React.FC<TableLineProps> = ({
       </TableCell>
       <TableCell className={classes.colPrice}>
         {maybe(() => line.orderLine.unitPrice.gross) ? (
-          <Money money={line.orderLine.unitPrice.gross} />
+          <Money money={line.orderLine.unitPrice.gross} align="right" />
         ) : (
           <Skeleton />
         )}
@@ -114,6 +112,7 @@ const TableLine: React.FC<TableLineProps> = ({
             amount: line.quantity * line.orderLine.unitPrice.gross.amount,
             currency: line.orderLine.unitPrice.gross.currency
           }}
+          align="right"
         />
       </TableCell>
     </TableRow>

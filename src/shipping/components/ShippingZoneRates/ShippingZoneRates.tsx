@@ -1,12 +1,10 @@
 import {
-  Button,
   Card,
   TableBody,
   TableCell,
   TableHead,
   TableRow
 } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
 import EditIcon from "@material-ui/icons/Edit";
 import CardTitle from "@saleor/components/CardTitle";
 import IconButtonTableCell from "@saleor/components/IconButtonTableCell";
@@ -15,9 +13,13 @@ import MoneyRange from "@saleor/components/MoneyRange";
 import ResponsiveTable from "@saleor/components/ResponsiveTable";
 import Skeleton from "@saleor/components/Skeleton";
 import WeightRange from "@saleor/components/WeightRange";
-import { ShippingZoneDetailsFragment_shippingMethods } from "@saleor/fragments/types/ShippingZoneDetailsFragment";
-import { makeStyles } from "@saleor/macaw-ui";
-import { ICONBUTTON_SIZE } from "@saleor/macaw-ui";
+import { ShippingZoneDetailsFragment } from "@saleor/graphql";
+import {
+  Button,
+  DeleteIcon,
+  ICONBUTTON_SIZE,
+  makeStyles
+} from "@saleor/macaw-ui";
 import { ChannelProps } from "@saleor/types";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -26,7 +28,7 @@ import { maybe, renderCollection } from "../../../misc";
 
 export interface ShippingZoneRatesProps extends ChannelProps {
   disabled: boolean;
-  rates: ShippingZoneDetailsFragment_shippingMethods[];
+  rates: ShippingZoneDetailsFragment["shippingMethods"];
   variant: "price" | "weight";
   testId?: string;
   onRateAdd: () => void;
@@ -84,12 +86,7 @@ const ShippingZoneRates: React.FC<ShippingZoneRatesProps> = props => {
               })
         }
         toolbar={
-          <Button
-            color="primary"
-            disabled={disabled}
-            onClick={onRateAdd}
-            data-test-id={testId}
-          >
+          <Button disabled={disabled} onClick={onRateAdd} data-test-id={testId}>
             <FormattedMessage
               defaultMessage="Create rate"
               description="button"

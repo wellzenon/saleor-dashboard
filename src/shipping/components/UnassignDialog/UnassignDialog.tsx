@@ -1,6 +1,6 @@
 import { DialogContentText } from "@material-ui/core";
 import ActionDialog from "@saleor/components/ActionDialog";
-import { ConfirmButtonTransitionState } from "@saleor/components/ConfirmButton";
+import { ConfirmButtonTransitionState } from "@saleor/macaw-ui";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -30,6 +30,10 @@ export const UnassignDialog: React.FC<UnassignDialogProps> = ({
       confirmButtonState={confirmButtonState}
       onClose={closeModal}
       onConfirm={onConfirm}
+      confirmButtonLabel={intl.formatMessage({
+        defaultMessage: "Unassign and save",
+        description: "unassign products from shipping rate and save, button"
+      })}
     >
       <DialogContentText>
         <FormattedMessage

@@ -7,7 +7,7 @@ import { SHARED_ELEMENTS } from "../../elements/shared/sharedElements";
 import { demoProductsNames } from "../../fixtures/products";
 import { productDetailsUrl, urlList } from "../../fixtures/urlList";
 import { getFirstProducts } from "../../support/api/requests/Product";
-import { loginDeleteProductsAndCreateNewOneWithNewDataAndDefaultChannel } from "../../support/api/utils/products/productsUtils";
+import { createNewProductWithNewDataAndDefaultChannel } from "../../support/api/utils/products/productsUtils";
 import filterTests from "../../support/filterTests";
 
 filterTests({ definedTags: ["all"] }, () => {
@@ -26,6 +26,9 @@ filterTests({ definedTags: ["all"] }, () => {
             element.data.hasOwnProperty("products")
           ).data;
           const products = data.products.edges;
+          cy.softExpectSkeletonIsVisible()
+            .get(SHARED_ELEMENTS.skeleton)
+            .should("not.exist");
           cy.get(PRODUCTS_LIST.productImage)
             .each($image => {
               cy.wrap($image)
@@ -48,7 +51,7 @@ filterTests({ definedTags: ["all"] }, () => {
     });
 
     it("Should display product image", () => {
-      getFirstProducts(1, demoProductsNames.appleJuice)
+      getFirstProducts(1, demoProductsNames.carrotJuice)
         .then(resp => {
           const product = resp[0].node;
           cy.visit(productDetailsUrl(product.id))
@@ -68,9 +71,10 @@ filterTests({ definedTags: ["all"] }, () => {
       const name = "CyImages";
 
       cy.clearSessionData().loginUserViaRequest();
-      loginDeleteProductsAndCreateNewOneWithNewDataAndDefaultChannel({ name })
-        .then(product => {
+      createNewProductWithNewDataAndDefaultChannel({ name })
+        .then(({ product }) => {
           cy.visit(productDetailsUrl(product.id))
+            .waitForProgressBarToNotBeVisible()
             .get(PRODUCT_DETAILS.uploadImageButton)
             .click()
             .get(PRODUCT_DETAILS.uploadSavedImagesButton)

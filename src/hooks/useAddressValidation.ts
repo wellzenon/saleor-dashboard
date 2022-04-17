@@ -1,17 +1,19 @@
 import { AddressTypeInput } from "@saleor/customers/types";
-import { AccountErrorFragment } from "@saleor/fragments/types/AccountErrorFragment";
-import { transformFormToAddressInput } from "@saleor/misc";
 import {
   AccountErrorCode,
+  AccountErrorFragment,
   AddressInput,
   AddressTypeEnum
-} from "@saleor/types/globalTypes";
+} from "@saleor/graphql";
+import { transformFormToAddressInput } from "@saleor/misc";
 import { add, remove } from "@saleor/utils/lists";
 import { useState } from "react";
 
 interface UseAddressValidation<TInput, TOutput> {
   errors: AccountErrorFragment[];
-  submit: (data: TInput & AddressTypeInput) => TOutput;
+  submit: (
+    data: TInput & AddressTypeInput
+  ) => TOutput | Promise<AccountErrorFragment[]>;
 }
 
 function useAddressValidation<TInput, TOutput>(
@@ -26,7 +28,8 @@ function useAddressValidation<TInput, TOutput>(
     __typename: "AccountError",
     code: AccountErrorCode.REQUIRED,
     field: "country",
-    addressType
+    addressType,
+    message: "Country required"
   };
 
   return {
@@ -42,7 +45,10 @@ function useAddressValidation<TInput, TOutput>(
         );
         return onSubmit(transformFormToAddressInput(data));
       } catch {
-        setValidationErrors(add(countryRequiredError, validationErrors));
+        const errors = add(countryRequiredError, validationErrors);
+        setValidationErrors(errors);
+        // since every onSubmit must return Promise<error>
+        return Promise.resolve(errors);
       }
     }
   };

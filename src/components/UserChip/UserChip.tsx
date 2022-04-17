@@ -1,5 +1,5 @@
 import { FormControlLabel, Switch } from "@material-ui/core";
-import { User } from "@saleor/fragments/types/User";
+import { UserFragment } from "@saleor/graphql";
 import { makeStyles, UserChipMenu, UserChipMenuItem } from "@saleor/macaw-ui";
 import { getUserInitials, getUserName } from "@saleor/misc";
 import React from "react";
@@ -20,7 +20,7 @@ const useStyles = makeStyles(
 
 export interface UserChipProps {
   isDarkThemeEnabled: boolean;
-  user: User;
+  user: UserFragment;
   onLogout: () => void;
   onProfileClick: () => void;
   onThemeToggle: () => void;
@@ -44,19 +44,19 @@ const UserChip: React.FC<UserChipProps> = ({
     >
       <UserChipMenuItem
         onClick={onProfileClick}
-        data-test="accountSettingsButton"
+        data-test-id="account-settings-button"
       >
         <FormattedMessage
           defaultMessage="Account Settings"
           description="button"
         />
       </UserChipMenuItem>
-      <UserChipMenuItem onClick={onLogout} data-test="logOutButton">
+      <UserChipMenuItem onClick={onLogout} data-test-id="log-out-button">
         <FormattedMessage defaultMessage="Log out" description="button" />
       </UserChipMenuItem>
       <UserChipMenuItem
         leaveOpen
-        data-test="themeSwitch"
+        data-test-id="theme-switch"
         data-test-is-dark={isDarkThemeEnabled}
       >
         <FormControlLabel

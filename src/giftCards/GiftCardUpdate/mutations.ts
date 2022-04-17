@@ -1,16 +1,6 @@
-import { giftCardErrorFragment } from "@saleor/fragments/errors";
-import makeMutation from "@saleor/hooks/makeMutation";
-import gql from "graphql-tag";
+import { gql } from "@apollo/client";
 
-import { giftCardDataFragment } from "./queries";
-import {
-  GiftCardUpdate,
-  GiftCardUpdateVariables
-} from "./types/GiftCardUpdate";
-
-const giftCardUpdate = gql`
-  ${giftCardDataFragment}
-  ${giftCardErrorFragment}
+export const giftCardUpdate = gql`
   mutation GiftCardUpdate($id: ID!, $input: GiftCardUpdateInput!) {
     giftCardUpdate(id: $id, input: $input) {
       errors {
@@ -18,12 +8,26 @@ const giftCardUpdate = gql`
       }
       giftCard {
         ...GiftCardData
+        events {
+          ...GiftCardEvent
+        }
       }
     }
   }
 `;
 
-export const useGiftCardUpdateMutation = makeMutation<
-  GiftCardUpdate,
-  GiftCardUpdateVariables
->(giftCardUpdate);
+export const giftCardTimelineNoteAdd = gql`
+  mutation GiftCardAddNote($id: ID!, $input: GiftCardAddNoteInput!) {
+    giftCardAddNote(id: $id, input: $input) {
+      errors {
+        ...GiftCardError
+      }
+      giftCard {
+        ...GiftCardData
+      }
+      event {
+        ...GiftCardEvent
+      }
+    }
+  }
+`;

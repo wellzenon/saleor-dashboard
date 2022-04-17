@@ -1,13 +1,10 @@
 import {
-  Button,
   Card,
-  IconButton,
   TableBody,
   TableCell,
   TableFooter,
   TableRow
 } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
 import CardTitle from "@saleor/components/CardTitle";
 import { ChannelsAvailabilityDropdown } from "@saleor/components/ChannelsAvailabilityDropdown";
 import Checkbox from "@saleor/components/Checkbox";
@@ -16,20 +13,20 @@ import Skeleton from "@saleor/components/Skeleton";
 import TableCellAvatar from "@saleor/components/TableCellAvatar";
 import TableHead from "@saleor/components/TableHead";
 import TablePagination from "@saleor/components/TablePagination";
+import { SaleDetailsFragment, VoucherDetailsFragment } from "@saleor/graphql";
+import { Button, DeleteIcon, IconButton } from "@saleor/macaw-ui";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { maybe, renderCollection } from "../../../misc";
-import { ListActions, ListProps } from "../../../types";
-import { SaleDetails_sale_products_edges_node } from "../../types/SaleDetails";
-import { VoucherDetails_voucher_products_edges_node } from "../../types/VoucherDetails";
+import { ListActions, ListProps, RelayToFlat } from "../../../types";
 import { messages } from "./messages";
 import { useStyles } from "./styles";
+
 export interface SaleProductsProps extends ListProps, ListActions {
   products:
-    | SaleDetails_sale_products_edges_node[]
-    | VoucherDetails_voucher_products_edges_node[];
-  channelsCount: number;
+    | RelayToFlat<SaleDetailsFragment["products"]>
+    | RelayToFlat<VoucherDetailsFragment["products"]>;
   onProductAssign: () => void;
   onProductUnassign: (id: string) => void;
 }
@@ -38,7 +35,6 @@ const numberOfColumns = 5;
 
 const DiscountProducts: React.FC<SaleProductsProps> = props => {
   const {
-    channelsCount,
     products,
     disabled,
     pageInfo,
@@ -62,11 +58,7 @@ const DiscountProducts: React.FC<SaleProductsProps> = props => {
       <CardTitle
         title={intl.formatMessage(messages.discountProductsHeader)}
         toolbar={
-          <Button
-            color="primary"
-            onClick={onProductAssign}
-            data-test-id="assign-products"
-          >
+          <Button onClick={onProductAssign} data-test-id="assign-products">
             <FormattedMessage {...messages.discountProductsButton} />
           </Button>
         }
@@ -156,7 +148,6 @@ const DiscountProducts: React.FC<SaleProductsProps> = props => {
                       "-"
                     ) : product?.channelListings !== undefined ? (
                       <ChannelsAvailabilityDropdown
-                        allChannelsCount={channelsCount}
                         channels={product?.channelListings}
                       />
                     ) : (
@@ -165,13 +156,14 @@ const DiscountProducts: React.FC<SaleProductsProps> = props => {
                   </TableCell>
                   <TableCell className={classes.colActions}>
                     <IconButton
+                      variant="secondary"
                       disabled={!product || disabled}
                       onClick={event => {
                         event.stopPropagation();
                         onProductUnassign(product.id);
                       }}
                     >
-                      <DeleteIcon color="primary" />
+                      <DeleteIcon />
                     </IconButton>
                   </TableCell>
                 </TableRow>

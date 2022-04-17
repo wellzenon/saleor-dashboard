@@ -1,11 +1,14 @@
-import { DialogContentText, IconButton } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
+import { DialogContentText } from "@material-ui/core";
 import ActionDialog from "@saleor/components/ActionDialog";
 import useAppChannel from "@saleor/components/AppLayout/AppChannelContext";
 import DeleteFilterTabDialog from "@saleor/components/DeleteFilterTabDialog";
 import SaveFilterTabDialog, {
   SaveFilterTabDialogFormData
 } from "@saleor/components/SaveFilterTabDialog";
+import {
+  useCollectionBulkDeleteMutation,
+  useCollectionListQuery
+} from "@saleor/graphql";
 import useBulkActions from "@saleor/hooks/useBulkActions";
 import useListSettings from "@saleor/hooks/useListSettings";
 import useNavigator from "@saleor/hooks/useNavigator";
@@ -15,6 +18,7 @@ import usePaginator, {
   createPaginationState
 } from "@saleor/hooks/usePaginator";
 import { commonMessages } from "@saleor/intl";
+import { DeleteIcon, IconButton } from "@saleor/macaw-ui";
 import { maybe } from "@saleor/misc";
 import { ListViews } from "@saleor/types";
 import createDialogActionHandlers from "@saleor/utils/handlers/dialogActionHandlers";
@@ -22,13 +26,10 @@ import createFilterHandlers from "@saleor/utils/handlers/filterHandlers";
 import createSortHandler from "@saleor/utils/handlers/sortHandler";
 import { mapEdgesToItems, mapNodeToChoice } from "@saleor/utils/maps";
 import { getSortParams } from "@saleor/utils/sort";
-import React from "react";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import CollectionListPage from "../../components/CollectionListPage/CollectionListPage";
-import { useCollectionBulkDelete } from "../../mutations";
-import { useCollectionListQuery } from "../../queries";
 import {
   collectionAddUrl,
   collectionListUrl,
@@ -104,7 +105,7 @@ export const CollectionList: React.FC<CollectionListProps> = ({ params }) => {
   const [
     collectionBulkDelete,
     collectionBulkDeleteOpts
-  ] = useCollectionBulkDelete({
+  ] = useCollectionBulkDeleteMutation({
     onCompleted: data => {
       if (data.collectionBulkDelete.errors.length === 0) {
         notify({
@@ -192,6 +193,7 @@ export const CollectionList: React.FC<CollectionListProps> = ({ params }) => {
         onRowClick={id => () => navigate(collectionUrl(id))}
         toolbar={
           <IconButton
+            variant="secondary"
             color="primary"
             onClick={() =>
               openModal("remove", {

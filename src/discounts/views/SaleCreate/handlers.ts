@@ -1,17 +1,20 @@
+import { FetchResult } from "@apollo/client";
 import { FormData } from "@saleor/discounts/components/SaleCreatePage";
 import { getSaleChannelsVariables } from "@saleor/discounts/handlers";
 import {
-  SaleChannelListingUpdate,
-  SaleChannelListingUpdateVariables
-} from "@saleor/discounts/types/SaleChannelListingUpdate";
+  DiscountValueTypeEnum,
+  SaleChannelListingUpdateMutation,
+  SaleChannelListingUpdateMutationVariables,
+  SaleCreateMutation,
+  SaleCreateMutationVariables,
+  SaleType
+} from "@saleor/graphql";
 import {
-  SaleCreate,
-  SaleCreateVariables
-} from "@saleor/discounts/types/SaleCreate";
-import { joinDateTime } from "@saleor/misc";
-import { decimal } from "@saleor/misc";
-import { DiscountValueTypeEnum, SaleType } from "@saleor/types/globalTypes";
-import { MutationFetchResult } from "react-apollo";
+  decimal,
+  extractMutationErrors,
+  getMutationErrors,
+  joinDateTime
+} from "@saleor/misc";
 
 function discountValueTypeEnum(type: SaleType): DiscountValueTypeEnum {
   return type.toString() === DiscountValueTypeEnum.FIXED
@@ -21,11 +24,11 @@ function discountValueTypeEnum(type: SaleType): DiscountValueTypeEnum {
 
 export function createHandler(
   createSale: (
-    variables: SaleCreateVariables
-  ) => Promise<MutationFetchResult<SaleCreate>>,
+    variables: SaleCreateMutationVariables
+  ) => Promise<FetchResult<SaleCreateMutation>>,
   updateChannels: (options: {
-    variables: SaleChannelListingUpdateVariables;
-  }) => Promise<MutationFetchResult<SaleChannelListingUpdate>>
+    variables: SaleChannelListingUpdateMutationVariables;
+  }) => Promise<FetchResult<SaleChannelListingUpdateMutation>>
 ) {
   return async (formData: FormData) => {
     const response = await createSale({
@@ -40,14 +43,25 @@ export function createHandler(
       }
     });
 
-    if (!response.data.saleCreate.errors.length) {
+    const errors = getMutationErrors(response);
+
+    if (errors.length > 0) {
+      return { errors };
+    }
+
+    const updateChannelsErrors = await extractMutationErrors(
       updateChannels({
         variables: getSaleChannelsVariables(
           response.data.saleCreate.sale.id,
           formData
         )
-      });
-      return response.data.saleCreate.sale.id;
+      })
+    );
+
+    if (updateChannelsErrors.length > 0) {
+      return { errors: updateChannelsErrors };
     }
+
+    return { id: response.data.saleCreate.sale.id };
   };
 }

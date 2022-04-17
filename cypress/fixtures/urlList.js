@@ -28,9 +28,12 @@ export const urlList = {
   translations: "translations/",
   variants: "variant/",
   vouchers: "discounts/vouchers/",
-  warehouses: "warehouses/",
-  weightRete: "weight/"
+  variant: "variant/",
+  warehouses: "warehouses/"
 };
+
+export const addVariantUrl = productId =>
+  `${urlList.products}${productId}/${urlList.variants}add`;
 
 export const appDetailsUrl = appId => `${urlList.apps}custom/${appId}`;
 
@@ -40,6 +43,9 @@ export const attributeDetailsUrl = attributeId =>
 export const categoryDetailsUrl = categoryId =>
   `${urlList.categories}${categoryId}`;
 
+export const collectionDetailsUrl = collectionId =>
+  `${urlList.collections}${collectionId}`;
+
 export const customerDetailsUrl = customerId =>
   `${urlList.customers}${customerId}`;
 
@@ -47,6 +53,8 @@ export const giftCardDetailsUrl = giftCardId =>
   `${urlList.giftCards}${giftCardId}`;
 
 export const menuDetailsUrl = menuId => `${urlList.navigation}${menuId}`;
+
+export const pageDetailsUrl = pageId => `${urlList.pages}${pageId}`;
 
 export const pageTypeDetailsUrl = pageTypeId =>
   `${urlList.pageTypes}${pageTypeId}`;
@@ -70,13 +78,16 @@ export const shippingZoneDetailsUrl = shippingZoneId =>
 
 export const userDetailsUrl = userId => `${urlList.staffMembers}${userId}`;
 
-export const weightRateUrl = (shippingZoneId, weightRateId) =>
-  `${urlList.shippingMethods}${shippingZoneId}/${urlList.weightRete}${weightRateId}`;
+export const shippingRateUrl = (shippingZoneId, weightRateId) =>
+  `${urlList.shippingMethods}${shippingZoneId}/${weightRateId}`;
 
 export const warehouseDetailsUrl = warehouseId =>
   `${urlList.warehouses}${warehouseId}`;
 
 export const saleDetailsUrl = saleId => `${urlList.sales}${saleId}`;
+
+export const variantDetailsUrl = (productId, variantId) =>
+  `${urlList.products}${productId}/${urlList.variants}${variantId}`;
 
 export const voucherDetailsUrl = voucherId => `${urlList.vouchers}${voucherId}`;
 

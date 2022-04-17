@@ -1,5 +1,4 @@
 import {
-  Button,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -10,33 +9,32 @@ import {
   TableRow,
   TextField
 } from "@material-ui/core";
-import ConfirmButton, {
-  ConfirmButtonTransitionState
-} from "@saleor/components/ConfirmButton";
+import ConfirmButton from "@saleor/components/ConfirmButton";
 import ResponsiveTable from "@saleor/components/ResponsiveTable";
 import TableCellAvatar from "@saleor/components/TableCellAvatar";
+import { SearchProductsQuery } from "@saleor/graphql";
 import useSearchQuery from "@saleor/hooks/useSearchQuery";
-import { buttonMessages } from "@saleor/intl";
+import { ConfirmButtonTransitionState } from "@saleor/macaw-ui";
 import { maybe } from "@saleor/misc";
-import { SearchProducts_search_edges_node } from "@saleor/searches/types/SearchProducts";
 import useScrollableDialogStyle from "@saleor/styles/useScrollableDialogStyle";
-import { DialogProps, FetchMoreProps } from "@saleor/types";
+import { DialogProps, FetchMoreProps, RelayToFlat } from "@saleor/types";
 import React from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { FormattedMessage, useIntl } from "react-intl";
 
+import BackButton from "../BackButton";
 import Checkbox from "../Checkbox";
 import { messages } from "./messages";
 import { useStyles } from "./styles";
 
 export interface AssignProductDialogFormData {
-  products: SearchProducts_search_edges_node[];
+  products: RelayToFlat<SearchProductsQuery["search"]>;
   query: string;
 }
 
 export interface AssignProductDialogProps extends FetchMoreProps, DialogProps {
   confirmButtonState: ConfirmButtonTransitionState;
-  products: SearchProducts_search_edges_node[];
+  products: RelayToFlat<SearchProductsQuery["search"]>;
   loading: boolean;
   onFetch: (value: string) => void;
   onSubmit: (data: string[]) => void;
@@ -165,14 +163,10 @@ const AssignProductDialog: React.FC<AssignProductDialogProps> = props => {
         </InfiniteScroll>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>
-          <FormattedMessage {...buttonMessages.back} />
-        </Button>
+        <BackButton onClick={onClose} />
         <ConfirmButton
-          data-test="submit"
+          data-test-id="submit"
           transitionState={confirmButtonState}
-          color="primary"
-          variant="contained"
           type="submit"
           onClick={handleSubmit}
         >

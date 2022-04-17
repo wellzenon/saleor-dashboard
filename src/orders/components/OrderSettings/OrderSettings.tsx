@@ -5,7 +5,7 @@ import ControlledCheckbox from "@saleor/components/ControlledCheckbox";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { OrderSettingsFormData } from "../OrderSettingsPage/form";
+import { OrderSettingsFormData } from "../OrderSettingsPage/types";
 
 export interface OrderSettingsProps {
   data: OrderSettingsFormData;
@@ -21,7 +21,7 @@ const OrderSettings: React.FC<OrderSettingsProps> = ({
   const intl = useIntl();
 
   return (
-    <Card data-test="orderSettings">
+    <Card data-test-id="order-settings">
       <CardTitle
         title={intl.formatMessage({
           defaultMessage: "Settings",
@@ -48,7 +48,7 @@ const OrderSettings: React.FC<OrderSettingsProps> = ({
           checked={data.automaticallyConfirmAllNewOrders}
           onChange={onChange}
           disabled={disabled}
-          data-test="automaticallyConfirmAllNewOrdersCheckbox"
+          data-test-id="automatically-confirm-all-new-orders-checkbox"
         />
         <CardSpacer />
         <ControlledCheckbox
@@ -70,7 +70,7 @@ const OrderSettings: React.FC<OrderSettingsProps> = ({
           checked={data.automaticallyFulfillNonShippableGiftCard}
           onChange={onChange}
           disabled={disabled}
-          data-test="automaticallyFulfillNonShippableGiftCardsCheckbox"
+          data-test-id="automatically-fulfill-non-shippable-gift-cards-checkbox"
         />
       </CardContent>
     </Card>

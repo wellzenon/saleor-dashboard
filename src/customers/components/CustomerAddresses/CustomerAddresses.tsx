@@ -1,14 +1,14 @@
-import { Button, Card, CardContent, Typography } from "@material-ui/core";
+import { Card, CardContent, Typography } from "@material-ui/core";
 import AddressFormatter from "@saleor/components/AddressFormatter";
 import CardTitle from "@saleor/components/CardTitle";
 import { Hr } from "@saleor/components/Hr";
+import { CustomerDetailsFragment } from "@saleor/graphql";
 import { buttonMessages } from "@saleor/intl";
-import { makeStyles } from "@saleor/macaw-ui";
+import { Button, makeStyles } from "@saleor/macaw-ui";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { maybe } from "../../../misc";
-import { CustomerDetails_user } from "../../types/CustomerDetails";
 
 const useStyles = makeStyles(
   theme => ({
@@ -21,7 +21,7 @@ const useStyles = makeStyles(
 );
 
 export interface CustomerAddressesProps {
-  customer: CustomerDetails_user;
+  customer: CustomerDetailsFragment;
   disabled: boolean;
   onAddressManageClick: () => void;
 }
@@ -41,9 +41,9 @@ const CustomerAddresses: React.FC<CustomerAddressesProps> = props => {
         })}
         toolbar={
           <Button
-            color="primary"
+            data-test-id="manage-addresses"
             disabled={disabled}
-            variant="text"
+            variant="tertiary"
             onClick={onAddressManageClick}
           >
             <FormattedMessage {...buttonMessages.manage} />

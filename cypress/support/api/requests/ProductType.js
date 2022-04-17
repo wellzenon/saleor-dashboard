@@ -7,11 +7,12 @@ export function createTypeProduct({
   hasVariants = true,
   slug = name,
   shippable = true,
-  kind = "NORMAL"
+  kind = "NORMAL",
+  productAttributes = true
 }) {
   const kindLines = returnValueDependsOnShopVersion("3.1", `kind: ${kind}`);
   const productAttributesLine = getValueWithDefault(
-    attributeId,
+    productAttributes && attributeId,
     `productAttributes: "${attributeId}"`
   );
   const variantAttributesLine = getValueWithDefault(
@@ -22,6 +23,7 @@ export function createTypeProduct({
     productTypeCreate(input: {
       name: "${name}"
       slug: "${slug}"
+      isDigital: ${!shippable}
       ${productAttributesLine}
       hasVariants: ${hasVariants}
       ${variantAttributesLine}
@@ -76,7 +78,7 @@ export function deleteProductType(productTypeId) {
 export function productAttributeAssignmentUpdate({
   productTypeId,
   attributeId,
-  variantSelection = true
+  variantSelection = false
 }) {
   const mutation = `mutation {
     productAttributeAssignmentUpdate(
@@ -95,6 +97,7 @@ export function getProductType(productTypeId) {
     productType(id:"${productTypeId}"){
       id
       name
+      kind
       isShippingRequired
       weight{
         value
@@ -102,10 +105,65 @@ export function getProductType(productTypeId) {
       productAttributes{
         name
       }
-      variantAttributes{
-        name
+      assignedVariantAttributes{
+        attribute{
+          name
+        }
+        variantSelection
       }
     }
   }`;
   return cy.sendRequestWithQuery(query).its("body.data.productType");
+}
+
+export function createDigitalContent(variantId) {
+  const mutation = `mutation{
+    digitalContentCreate(input:{
+      useDefaultSettings:true,
+      automaticFulfillment: true,
+      contentFile:""
+    }, variantId:"${variantId}"){
+      content{
+        id
+      }
+      errors{
+        field
+        message
+      }
+    }
+  }`;
+  return cy.sendRequestWithQuery(mutation);
+}
+
+export function setProductTypeAsDigital(productTypeId, isDigital = true) {
+  const mutation = `mutation updateProductType{
+    productTypeUpdate(id:"${productTypeId}", input:{
+     isDigital:${isDigital}
+    }){
+     errors{
+       field
+       message
+     } 
+    }
+   }`;
+  return cy.sendRequestWithQuery(mutation);
+}
+
+export function assignAttribute(
+  productTypeId,
+  attributeId,
+  attributeType = "VARIANT"
+) {
+  const mutation = `mutation{
+    productAttributeAssign(productTypeId:"${productTypeId}", operations:{
+      id:"${attributeId}"
+      type: ${attributeType}
+    }){
+      errors{
+        field
+        message
+      }
+    }
+  }`;
+  return cy.sendRequestWithQuery(mutation);
 }

@@ -2,19 +2,31 @@ import AppActivateDialog from "@saleor/apps/components/AppActivateDialog";
 import AppDeactivateDialog from "@saleor/apps/components/AppDeactivateDialog";
 import TokenCreateDialog from "@saleor/apps/components/TokenCreateDialog";
 import TokenDeleteDialog from "@saleor/apps/components/TokenDeleteDialog";
+import { appMessages } from "@saleor/apps/messages";
 import NotFoundPage from "@saleor/components/NotFoundPage";
 import { WindowTitle } from "@saleor/components/WindowTitle";
 import { API_URI } from "@saleor/config";
+import {
+  AppTokenCreateMutation,
+  AppTokenDeleteMutation,
+  AppUpdateMutation,
+  useAppActivateMutation,
+  useAppDeactivateMutation,
+  useAppQuery,
+  useAppTokenCreateMutation,
+  useAppTokenDeleteMutation,
+  useAppUpdateMutation,
+  useWebhookDeleteMutation,
+  WebhookDeleteMutation
+} from "@saleor/graphql";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
 import useShop from "@saleor/hooks/useShop";
 import { commonMessages } from "@saleor/intl";
-import { getStringOrPlaceholder } from "@saleor/misc";
+import { extractMutationErrors, getStringOrPlaceholder } from "@saleor/misc";
 import getAppErrorMessage from "@saleor/utils/errors/app";
 import createDialogActionHandlers from "@saleor/utils/handlers/dialogActionHandlers";
 import WebhookDeleteDialog from "@saleor/webhooks/components/WebhookDeleteDialog";
-import { useWebhookDeleteMutation } from "@saleor/webhooks/mutations";
-import { WebhookDelete } from "@saleor/webhooks/types/WebhookDelete";
 import { webhookAddPath, webhookPath } from "@saleor/webhooks/urls";
 import React from "react";
 import { useIntl } from "react-intl";
@@ -22,17 +34,6 @@ import { useIntl } from "react-intl";
 import CustomAppDetailsPage, {
   CustomAppDetailsPageFormData
 } from "../../components/CustomAppDetailsPage";
-import {
-  useAppActivateMutation,
-  useAppDeactivateMutation,
-  useAppTokenCreateMutation,
-  useAppTokenDeleteMutation,
-  useAppUpdateMutation
-} from "../../mutations";
-import { useAppDetails } from "../../queries";
-import { AppTokenCreate } from "../../types/AppTokenCreate";
-import { AppTokenDelete } from "../../types/AppTokenDelete";
-import { AppUpdate } from "../../types/AppUpdate";
 import {
   appsListUrl,
   customAppUrl,
@@ -65,7 +66,7 @@ export const CustomAppDetails: React.FC<OrderListProps> = ({
     CustomAppUrlQueryParams
   >(navigate, params => customAppUrl(id, params), params);
 
-  const { data, loading, refetch } = useAppDetails({
+  const { data, loading, refetch } = useAppQuery({
     displayLoader: true,
     variables: { id }
   });
@@ -75,10 +76,7 @@ export const CustomAppDetails: React.FC<OrderListProps> = ({
       if (errors?.length === 0) {
         notify({
           status: "success",
-          text: intl.formatMessage({
-            defaultMessage: "App activated",
-            description: "snackbar text"
-          })
+          text: intl.formatMessage(appMessages.appActivated)
         });
         refetch();
         closeModal();
@@ -98,10 +96,7 @@ export const CustomAppDetails: React.FC<OrderListProps> = ({
       if (errors.length === 0) {
         notify({
           status: "success",
-          text: intl.formatMessage({
-            defaultMessage: "App deactivated",
-            description: "snackbar text"
-          })
+          text: intl.formatMessage(appMessages.appDeactivated)
         });
         refetch();
         closeModal();
@@ -116,7 +111,7 @@ export const CustomAppDetails: React.FC<OrderListProps> = ({
     }
   });
 
-  const onWebhookDelete = (data: WebhookDelete) => {
+  const onWebhookDelete = (data: WebhookDeleteMutation) => {
     if (data.webhookDelete.errors.length === 0) {
       notify({
         status: "success",
@@ -140,7 +135,7 @@ export const CustomAppDetails: React.FC<OrderListProps> = ({
     });
   };
 
-  const onAppUpdate = (data: AppUpdate) => {
+  const onAppUpdate = (data: AppUpdateMutation) => {
     if (data?.appUpdate?.errors?.length === 0) {
       notify({
         status: "success",
@@ -155,12 +150,12 @@ export const CustomAppDetails: React.FC<OrderListProps> = ({
     return <NotFoundPage onBack={handleBack} />;
   }
 
-  const onTokenCreate = (data: AppTokenCreate) => {
+  const onTokenCreate = (data: AppTokenCreateMutation) => {
     if (data?.appTokenCreate?.errors.length === 0) {
       refetch();
     }
   };
-  const onTokenDelete = (data: AppTokenDelete) => {
+  const onTokenDelete = (data: AppTokenDeleteMutation) => {
     if (data?.appTokenDelete?.errors.length === 0) {
       notify({
         status: "success",
@@ -181,21 +176,20 @@ export const CustomAppDetails: React.FC<OrderListProps> = ({
     onCompleted: onTokenDelete
   });
 
-  const handleSubmit = async (data: CustomAppDetailsPageFormData) => {
-    const result = await updateApp({
-      variables: {
-        id,
-        input: {
-          name: data.name,
-          permissions: data.hasFullAccess
-            ? shop.permissions.map(permission => permission.code)
-            : data.permissions
+  const handleSubmit = async (data: CustomAppDetailsPageFormData) =>
+    extractMutationErrors(
+      updateApp({
+        variables: {
+          id,
+          input: {
+            name: data.name,
+            permissions: data.hasFullAccess
+              ? shop.permissions.map(permission => permission.code)
+              : data.permissions
+          }
         }
-      }
-    });
-
-    return result.data.appUpdate.errors;
-  };
+      })
+    );
 
   const handleTokenCreate = (name: string) =>
     createToken({

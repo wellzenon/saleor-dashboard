@@ -1,20 +1,20 @@
-import { ConfirmButtonTransitionState } from "@saleor/components/ConfirmButton";
 import { Container } from "@saleor/components/Container";
 import Form from "@saleor/components/Form";
 import Grid from "@saleor/components/Grid";
 import PageHeader from "@saleor/components/PageHeader";
 import Savebar from "@saleor/components/Savebar";
+import { CountryListQuery } from "@saleor/graphql";
+import { SubmitPromise } from "@saleor/hooks/useForm";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
+import { Backlink, ConfirmButtonTransitionState } from "@saleor/macaw-ui";
 import React from "react";
 import { useIntl } from "react-intl";
 
 import { maybe } from "../../../misc";
-import { CountryList_shop } from "../../types/CountryList";
 import CountryList from "../CountryList";
 import TaxConfiguration from "../TaxConfiguration";
 
-export interface FormData {
+export interface TaxesConfigurationFormData {
   includeTax: boolean;
   showGross: boolean;
   chargeTaxesOnShipping: boolean;
@@ -22,10 +22,10 @@ export interface FormData {
 export interface CountryListPageProps {
   disabled: boolean;
   saveButtonBarState: ConfirmButtonTransitionState;
-  shop: CountryList_shop;
+  shop: CountryListQuery["shop"];
   onBack: () => void;
   onRowClick: (code: string) => void;
-  onSubmit: (data: FormData) => void;
+  onSubmit: (data: TaxesConfigurationFormData) => SubmitPromise;
   onTaxFetch: () => void;
 }
 
@@ -40,14 +40,19 @@ const CountryListPage: React.FC<CountryListPageProps> = ({
 }) => {
   const intl = useIntl();
 
-  const initialForm: FormData = {
+  const initialForm: TaxesConfigurationFormData = {
     chargeTaxesOnShipping: maybe(() => shop.chargeTaxesOnShipping, false),
     includeTax: maybe(() => shop.includeTaxesInPrices, false),
     showGross: maybe(() => shop.displayGrossPrices, false)
   };
   return (
-    <Form initial={initialForm} onSubmit={onSubmit}>
-      {({ change, data, hasChanged, submit }) => (
+    <Form
+      confirmLeave
+      initial={initialForm}
+      onSubmit={onSubmit}
+      disabled={disabled}
+    >
+      {({ change, data, isSaveDisabled, submit }) => (
         <>
           <Container>
             <Backlink onClick={onBack}>
@@ -64,7 +69,7 @@ const CountryListPage: React.FC<CountryListPageProps> = ({
                 <TaxConfiguration
                   data={data}
                   disabled={disabled}
-                  onChange={event => change(event, submit)}
+                  onChange={event => change(event)}
                   onTaxFetch={onTaxFetch}
                 />
               </div>
@@ -77,7 +82,7 @@ const CountryListPage: React.FC<CountryListPageProps> = ({
             </Grid>
           </Container>
           <Savebar
-            disabled={disabled || !hasChanged}
+            disabled={isSaveDisabled}
             state={saveButtonBarState}
             onCancel={onBack}
             onSubmit={submit}

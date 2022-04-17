@@ -1,10 +1,9 @@
-import { Button } from "@material-ui/core";
 import HorizontalSpacer from "@saleor/apps/components/HorizontalSpacer";
 import PageHeader from "@saleor/components/PageHeader";
-import PageTitleWithStatusChip from "@saleor/components/PageTitleWithStatusChip";
-import { StatusType } from "@saleor/components/StatusChip/types";
+import GiftCardStatusChip from "@saleor/giftCards/components/GiftCardStatusChip/GiftCardStatusChip";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
+import { Backlink, Button } from "@saleor/macaw-ui";
+import { getStringOrPlaceholder } from "@saleor/misc";
 import React from "react";
 import { useIntl } from "react-intl";
 
@@ -13,62 +12,46 @@ import useGiftCardDetails from "../providers/GiftCardDetailsProvider/hooks/useGi
 import useGiftCardUpdateDialogs from "../providers/GiftCardUpdateDialogsProvider/hooks/useGiftCardUpdateDialogs";
 import GiftCardEnableDisableSection from "./GiftCardEnableDisableSection";
 import { giftCardUpdatePageHeaderMessages as messages } from "./messages";
+import useStyles from "./styles";
 
 const GiftCardUpdatePageHeader: React.FC = () => {
+  const classes = useStyles();
   const intl = useIntl();
   const { giftCard } = useGiftCardDetails();
   const { navigateBack } = useGiftCardUpdateDialogs();
 
-  if (!giftCard) {
-    return null;
-  }
-
   const { openResendCodeDialog } = useGiftCardUpdateDialogs();
 
-  const { displayCode, isActive, isExpired } = giftCard;
+  if (!giftCard) {
+    return <PageHeader preview title={getStringOrPlaceholder(undefined)} />;
+  }
+
+  const { last4CodeChars, isExpired } = giftCard;
 
   const title = intl.formatMessage(tableMessages.codeEndingWithLabel, {
-    displayCode
+    last4CodeChars
   });
-
-  const getPageTitle = () => {
-    if (isExpired) {
-      return (
-        <PageTitleWithStatusChip
-          title={title}
-          statusLabel={intl.formatMessage(messages.expiredStatusLabel)}
-          statusType={StatusType.NEUTRAL}
-        />
-      );
-    }
-
-    if (!isActive) {
-      return (
-        <PageTitleWithStatusChip
-          title={title}
-          statusLabel={intl.formatMessage(messages.disabledStatusLabel)}
-          statusType={StatusType.ERROR}
-        />
-      );
-    }
-
-    return title;
-  };
 
   return (
     <>
       <Backlink onClick={navigateBack}>
         {intl.formatMessage(sectionNames.giftCards)}
       </Backlink>
-      <PageHeader inline title={getPageTitle()}>
+      <PageHeader
+        preview
+        inline
+        title={
+          <div className={classes.title}>
+            {title}
+            <HorizontalSpacer spacing={2} />
+            <GiftCardStatusChip giftCard={giftCard} />
+          </div>
+        }
+      >
         <GiftCardEnableDisableSection />
         <HorizontalSpacer />
         {!isExpired && (
-          <Button
-            color="primary"
-            variant="contained"
-            onClick={openResendCodeDialog}
-          >
+          <Button variant="primary" onClick={openResendCodeDialog}>
             {intl.formatMessage(messages.resendButtonLabel)}
           </Button>
         )}

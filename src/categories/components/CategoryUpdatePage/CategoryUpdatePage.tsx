@@ -1,29 +1,27 @@
-import { Button, Card } from "@material-ui/core";
+import { Card } from "@material-ui/core";
 import { CardSpacer } from "@saleor/components/CardSpacer";
 import CardTitle from "@saleor/components/CardTitle";
-import { ConfirmButtonTransitionState } from "@saleor/components/ConfirmButton";
 import Container from "@saleor/components/Container";
 import Metadata from "@saleor/components/Metadata/Metadata";
 import PageHeader from "@saleor/components/PageHeader";
 import Savebar from "@saleor/components/Savebar";
 import SeoForm from "@saleor/components/SeoForm";
 import { Tab, TabContainer } from "@saleor/components/Tab";
-import { ProductErrorFragment } from "@saleor/fragments/types/ProductErrorFragment";
+import { CategoryDetailsQuery, ProductErrorFragment } from "@saleor/graphql";
 import { SubmitPromise } from "@saleor/hooks/useForm";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
+import {
+  Backlink,
+  Button,
+  ConfirmButtonTransitionState
+} from "@saleor/macaw-ui";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { maybe } from "../../../misc";
-import { TabListActions } from "../../../types";
+import { RelayToFlat, TabListActions } from "../../../types";
 import CategoryDetailsForm from "../../components/CategoryDetailsForm";
 import CategoryList from "../../components/CategoryList";
-import {
-  CategoryDetails_category,
-  CategoryDetails_category_children_edges_node,
-  CategoryDetails_category_products_edges_node
-} from "../../types/CategoryDetails";
 import CategoryBackground from "../CategoryBackground";
 import CategoryProducts from "../CategoryProducts";
 import CategoryUpdateForm, { CategoryUpdateData } from "./form";
@@ -39,9 +37,9 @@ export interface CategoryUpdatePageProps
   currentTab: CategoryPageTab;
   errors: ProductErrorFragment[];
   disabled: boolean;
-  category: CategoryDetails_category;
-  products: CategoryDetails_category_products_edges_node[];
-  subcategories: CategoryDetails_category_children_edges_node[];
+  category: CategoryDetailsQuery["category"];
+  products: RelayToFlat<CategoryDetailsQuery["category"]["products"]>;
+  subcategories: RelayToFlat<CategoryDetailsQuery["category"]["children"]>;
   pageInfo: {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
@@ -94,8 +92,12 @@ export const CategoryUpdatePage: React.FC<CategoryUpdatePageProps> = ({
   const intl = useIntl();
 
   return (
-    <CategoryUpdateForm category={category} onSubmit={onSubmit}>
-      {({ data, change, handlers, submit, hasChanged }) => (
+    <CategoryUpdateForm
+      category={category}
+      onSubmit={onSubmit}
+      disabled={disabled}
+    >
+      {({ data, change, handlers, submit, isSaveDisabled }) => (
         <Container>
           <Backlink onClick={onBack}>
             {intl.formatMessage(sectionNames.categories)}
@@ -147,7 +149,7 @@ export const CategoryUpdatePage: React.FC<CategoryUpdatePageProps> = ({
               />
             </CategoriesTab>
             <ProductsTab
-              testId="productsTab"
+              testId="products-tab"
               isActive={currentTab === CategoryPageTab.products}
               changeTab={changeTab}
             >
@@ -167,10 +169,9 @@ export const CategoryUpdatePage: React.FC<CategoryUpdatePageProps> = ({
                 })}
                 toolbar={
                   <Button
-                    color="primary"
-                    variant="text"
+                    variant="tertiary"
                     onClick={onAddCategory}
-                    data-test-id="createSubcategory"
+                    data-test-id="create-subcategory"
                   >
                     <FormattedMessage
                       defaultMessage="Create subcategory"
@@ -220,7 +221,7 @@ export const CategoryUpdatePage: React.FC<CategoryUpdatePageProps> = ({
             onDelete={onDelete}
             onSubmit={submit}
             state={saveButtonBarState}
-            disabled={disabled || !hasChanged}
+            disabled={isSaveDisabled}
           />
         </Container>
       )}

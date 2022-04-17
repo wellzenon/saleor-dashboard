@@ -1,13 +1,13 @@
 import { TableCell } from "@material-ui/core";
-import Draggable from "@saleor/icons/Draggable";
-import { makeStyles } from "@saleor/macaw-ui";
+import { DragIcon, makeStyles } from "@saleor/macaw-ui";
 import React from "react";
 import { SortableHandle as SortableHandleHoc } from "react-sortable-hoc";
 
 const useStyles = makeStyles(
   theme => ({
     columnDrag: {
-      "&:first-child": {
+      "&&&": {
+        paddingLeft: theme.spacing(3),
         paddingRight: theme.spacing(2)
       },
       cursor: "grab",
@@ -22,7 +22,7 @@ const SortableHandle = SortableHandleHoc(() => {
 
   return (
     <TableCell className={classes.columnDrag}>
-      <Draggable />
+      <DragIcon color="primary" />
     </TableCell>
   );
 });

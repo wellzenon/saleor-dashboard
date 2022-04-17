@@ -6,6 +6,7 @@ import Skeleton from "@saleor/components/Skeleton";
 import TableCellHeader from "@saleor/components/TableCellHeader";
 import TableHead from "@saleor/components/TableHead";
 import TablePagination from "@saleor/components/TablePagination";
+import { AttributeFragment } from "@saleor/graphql";
 import { translateBoolean } from "@saleor/intl";
 import { makeStyles } from "@saleor/macaw-ui";
 import { maybe, renderCollection } from "@saleor/misc";
@@ -14,13 +15,11 @@ import { getArrowDirection } from "@saleor/utils/sort";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { AttributeList_attributes_edges_node } from "../../types/AttributeList";
-
 export interface AttributeListProps
   extends ListProps,
     ListActions,
     SortPage<AttributeListUrlSortField> {
-  attributes: AttributeList_attributes_edges_node[];
+  attributes: AttributeFragment[];
 }
 
 const useStyles = makeStyles(
@@ -190,8 +189,7 @@ const AttributeList: React.FC<AttributeListProps> = ({
                 key={attribute ? attribute.id : "skeleton"}
                 onClick={attribute && onRowClick(attribute.id)}
                 className={classes.link}
-                data-test="id"
-                data-test-id={maybe(() => attribute.id)}
+                data-test-id={"id-" + maybe(() => attribute.id)}
               >
                 <TableCell padding="checkbox">
                   <Checkbox
@@ -201,15 +199,15 @@ const AttributeList: React.FC<AttributeListProps> = ({
                     onChange={() => toggle(attribute.id)}
                   />
                 </TableCell>
-                <TableCell className={classes.colSlug} data-test="slug">
+                <TableCell className={classes.colSlug} data-test-id="slug">
                   {attribute ? attribute.slug : <Skeleton />}
                 </TableCell>
-                <TableCell className={classes.colName} data-test="name">
+                <TableCell className={classes.colName} data-test-id="name">
                   {attribute ? attribute.name : <Skeleton />}
                 </TableCell>
                 <TableCell
                   className={classes.colVisible}
-                  data-test="visible"
+                  data-test-id="visible"
                   data-test-visible={maybe(() => attribute.visibleInStorefront)}
                 >
                   {attribute ? (
@@ -220,7 +218,7 @@ const AttributeList: React.FC<AttributeListProps> = ({
                 </TableCell>
                 <TableCell
                   className={classes.colSearchable}
-                  data-test="searchable"
+                  data-test-id="searchable"
                   data-test-searchable={maybe(
                     () => attribute.filterableInDashboard
                   )}
@@ -233,7 +231,7 @@ const AttributeList: React.FC<AttributeListProps> = ({
                 </TableCell>
                 <TableCell
                   className={classes.colFaceted}
-                  data-test="use-in-faceted-search"
+                  data-test-id="use-in-faceted-search"
                   data-test-use-in-faceted-search={maybe(
                     () => attribute.filterableInStorefront
                   )}

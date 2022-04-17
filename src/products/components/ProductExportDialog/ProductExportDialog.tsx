@@ -1,44 +1,42 @@
 import {
-  Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Typography
 } from "@material-ui/core";
-import ConfirmButton, {
-  ConfirmButtonTransitionState
-} from "@saleor/components/ConfirmButton";
+import ConfirmButton from "@saleor/components/ConfirmButton";
 import makeCreatorSteps, { Step } from "@saleor/components/CreatorSteps";
 import { MultiAutocompleteChoiceType } from "@saleor/components/MultiAutocompleteSelectField";
-import { ChannelFragment } from "@saleor/fragments/types/ChannelFragment";
-import { ExportErrorFragment } from "@saleor/fragments/types/ExportErrorFragment";
+import {
+  ChannelFragment,
+  ExportErrorFragment,
+  ExportProductsInput,
+  SearchAttributesQuery,
+  WarehouseFragment
+} from "@saleor/graphql";
 import useForm, { FormChange } from "@saleor/hooks/useForm";
 import useModalDialogErrors from "@saleor/hooks/useModalDialogErrors";
 import useModalDialogOpen from "@saleor/hooks/useModalDialogOpen";
 import useWizard from "@saleor/hooks/useWizard";
 import { buttonMessages } from "@saleor/intl";
-import { SearchAttributes_search_edges_node } from "@saleor/searches/types/SearchAttributes";
-import { DialogProps, FetchMoreProps } from "@saleor/types";
-import {
-  ExportProductsInput,
-  ExportScope,
-  FileTypesEnum
-} from "@saleor/types/globalTypes";
+import { Button, ConfirmButtonTransitionState } from "@saleor/macaw-ui";
+import { DialogProps, FetchMoreProps, RelayToFlat } from "@saleor/types";
 import getExportErrorMessage from "@saleor/utils/errors/export";
 import { toggle } from "@saleor/utils/lists";
 import { mapNodeToChoice } from "@saleor/utils/maps";
-import { WarehouseList_warehouses_edges_node } from "@saleor/warehouses/types/WarehouseList";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
+import ExportDialogSettings, {
+  ExportItemsQuantity
+} from "./ExportDialogSettings";
+import { productExportDialogMessages as messages } from "./messages";
 import ProductExportDialogInfo, {
   attributeNamePrefix,
   warehouseNamePrefix
 } from "./ProductExportDialogInfo";
-import ProductExportDialogSettings, {
-  ProductQuantity
-} from "./ProductExportDialogSettings";
+import { exportSettingsInitialFormData } from "./types";
 
 export enum ProductExportStep {
   INFO,
@@ -73,20 +71,19 @@ const initialForm: ExportProductsInput = {
     fields: [],
     warehouses: []
   },
-  fileType: FileTypesEnum.CSV,
-  scope: ExportScope.ALL
+  ...exportSettingsInitialFormData
 };
 
 const ProductExportSteps = makeCreatorSteps<ProductExportStep>();
 
 export interface ProductExportDialogProps extends DialogProps, FetchMoreProps {
-  attributes: SearchAttributes_search_edges_node[];
+  attributes: RelayToFlat<SearchAttributesQuery["search"]>;
   channels: ChannelFragment[];
   confirmButtonState: ConfirmButtonTransitionState;
   errors: ExportErrorFragment[];
-  productQuantity: ProductQuantity;
+  productQuantity: ExportItemsQuantity;
   selectedProducts: number;
-  warehouses: WarehouseList_warehouses_edges_node[];
+  warehouses: WarehouseFragment[];
   onFetch: (query: string) => void;
   onSubmit: (data: ExportProductsInput) => void;
 }
@@ -216,14 +213,32 @@ const ProductExportDialog: React.FC<ProductExportDialogProps> = ({
       }
     });
 
+  const exportScopeLabels = {
+    allItems: intl.formatMessage(
+      {
+        defaultMessage: "All products ({number})",
+        description: "export all items to csv file"
+      },
+      {
+        number: productQuantity.all || "..."
+      }
+    ),
+    selectedItems: intl.formatMessage(
+      {
+        defaultMessage: "Selected products ({number})",
+        description: "export selected items to csv file"
+      },
+      {
+        number: selectedProducts
+      }
+    )
+  };
+
   return (
     <Dialog onClose={onClose} open={open} maxWidth="sm" fullWidth>
       <>
         <DialogTitle>
-          <FormattedMessage
-            defaultMessage="Export Information"
-            description="export products to csv file, dialog header"
-          />
+          <FormattedMessage {...messages.title} />
         </DialogTitle>
         <DialogContent>
           <ProductExportSteps
@@ -249,12 +264,13 @@ const ProductExportDialog: React.FC<ProductExportDialogProps> = ({
             />
           )}
           {step === ProductExportStep.SETTINGS && (
-            <ProductExportDialogSettings
+            <ExportDialogSettings
               data={data}
               errors={dialogErrors}
-              productQuantity={productQuantity}
-              selectedProducts={selectedProducts}
               onChange={change}
+              itemsQuantity={productQuantity}
+              selectedItems={selectedProducts}
+              exportScopeLabels={exportScopeLabels}
             />
           )}
         </DialogContent>
@@ -271,37 +287,38 @@ const ProductExportDialog: React.FC<ProductExportDialogProps> = ({
 
         <DialogActions>
           {step === ProductExportStep.INFO && (
-            <Button onClick={onClose} data-test="cancel">
+            <Button
+              variant="secondary"
+              color="text"
+              onClick={onClose}
+              data-test-id="cancel"
+            >
               <FormattedMessage {...buttonMessages.cancel} />
             </Button>
           )}
           {step === ProductExportStep.SETTINGS && (
-            <Button onClick={prev} data-test="back">
+            <Button
+              variant="secondary"
+              color="text"
+              onClick={prev}
+              data-test-id="back"
+            >
               <FormattedMessage {...buttonMessages.back} />
             </Button>
           )}
           {step === ProductExportStep.INFO && (
-            <Button
-              color="primary"
-              variant="contained"
-              onClick={next}
-              data-test="next"
-            >
+            <Button variant="primary" onClick={next} data-test-id="next">
               <FormattedMessage {...buttonMessages.nextStep} />
             </Button>
           )}
           {step === ProductExportStep.SETTINGS && (
             <ConfirmButton
               transitionState={confirmButtonState}
-              variant="contained"
               type="submit"
-              data-test="submit"
+              data-test-id="submit"
               onClick={submit}
             >
-              <FormattedMessage
-                defaultMessage="export products"
-                description="export products to csv file, button"
-              />
+              <FormattedMessage {...messages.confirmButtonLabel} />
             </ConfirmButton>
           )}
         </DialogActions>

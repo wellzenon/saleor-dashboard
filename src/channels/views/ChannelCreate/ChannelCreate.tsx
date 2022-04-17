@@ -1,9 +1,12 @@
 import { FormData } from "@saleor/channels/components/ChannelForm/ChannelForm";
-import { ChannelCreate } from "@saleor/channels/types/ChannelCreate";
 import Container from "@saleor/components/Container";
 import PageHeader from "@saleor/components/PageHeader";
 import { WindowTitle } from "@saleor/components/WindowTitle";
 import { DEFAULT_INITIAL_SEARCH_DATA } from "@saleor/config";
+import {
+  ChannelCreateMutation,
+  useChannelCreateMutation
+} from "@saleor/graphql";
 import { getSearchFetchMoreProps } from "@saleor/hooks/makeTopLevelSearch/utils";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
@@ -11,12 +14,12 @@ import { getDefaultNotifierSuccessErrorData } from "@saleor/hooks/useNotifier/ut
 import useShop from "@saleor/hooks/useShop";
 import { sectionNames } from "@saleor/intl";
 import { Backlink } from "@saleor/macaw-ui";
+import { extractMutationErrors } from "@saleor/misc";
 import useShippingZonesSearch from "@saleor/searches/useShippingZonesSearch";
 import currencyCodes from "currency-codes";
 import React from "react";
 import { useIntl } from "react-intl";
 
-import { useChannelCreateMutation } from "../../mutations";
 import ChannelDetailsPage from "../../pages/ChannelDetailsPage";
 import { channelPath, channelsListUrl } from "../../urls";
 
@@ -29,7 +32,9 @@ export const ChannelCreateView = ({}) => {
   const handleBack = () => navigate(channelsListUrl());
 
   const [createChannel, createChannelOpts] = useChannelCreateMutation({
-    onCompleted: ({ channelCreate: { errors, channel } }: ChannelCreate) => {
+    onCompleted: ({
+      channelCreate: { errors, channel }
+    }: ChannelCreateMutation) => {
       notify(getDefaultNotifierSuccessErrorData(errors, intl));
 
       if (!errors.length) {
@@ -44,15 +49,17 @@ export const ChannelCreateView = ({}) => {
     currencyCode,
     ...rest
   }: FormData) =>
-    createChannel({
-      variables: {
-        input: {
-          ...rest,
-          currencyCode: currencyCode.toUpperCase(),
-          addShippingZones: shippingZonesIdsToAdd
+    extractMutationErrors(
+      createChannel({
+        variables: {
+          input: {
+            ...rest,
+            currencyCode: currencyCode.toUpperCase(),
+            addShippingZones: shippingZonesIdsToAdd
+          }
         }
-      }
-    });
+      })
+    );
 
   const {
     loadMore: fetchMoreShippingZones,

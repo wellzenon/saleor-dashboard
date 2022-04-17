@@ -7,20 +7,26 @@ import {
   DEFAULT_INITIAL_SEARCH_DATA,
   VALUES_PAGINATE_BY
 } from "@saleor/config";
-import { useFileUploadMutation } from "@saleor/files/mutations";
+import {
+  useFileUploadMutation,
+  useProductChannelListingUpdateMutation,
+  useProductCreateMutation,
+  useProductDeleteMutation,
+  useProductTypeQuery,
+  useProductVariantChannelListingUpdateMutation,
+  useTaxTypeListQuery,
+  useUpdateMetadataMutation,
+  useUpdatePrivateMetadataMutation,
+  useVariantCreateMutation,
+  useWarehouseListQuery
+} from "@saleor/graphql";
 import useChannels from "@saleor/hooks/useChannels";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
 import useShop from "@saleor/hooks/useShop";
-import ProductCreatePage from "@saleor/products/components/ProductCreatePage";
-import {
-  useProductChannelListingUpdate,
-  useProductDeleteMutation,
-  useProductVariantChannelListingUpdate,
-  useVariantCreateMutation
-} from "@saleor/products/mutations";
-import { useProductCreateMutation } from "@saleor/products/mutations";
-import { useProductTypeQuery } from "@saleor/products/queries";
+import ProductCreatePage, {
+  ProductCreateData
+} from "@saleor/products/components/ProductCreatePage";
 import {
   productAddUrl,
   ProductCreateUrlDialog,
@@ -33,21 +39,16 @@ import useCollectionSearch from "@saleor/searches/useCollectionSearch";
 import usePageSearch from "@saleor/searches/usePageSearch";
 import useProductSearch from "@saleor/searches/useProductSearch";
 import useProductTypeSearch from "@saleor/searches/useProductTypeSearch";
-import { useTaxTypeList } from "@saleor/taxes/queries";
 import { getProductErrorMessage } from "@saleor/utils/errors";
 import useAttributeValueSearchHandler from "@saleor/utils/handlers/attributeValueSearchHandler";
 import createDialogActionHandlers from "@saleor/utils/handlers/dialogActionHandlers";
 import createMetadataCreateHandler from "@saleor/utils/handlers/metadataCreateHandler";
 import { mapEdgesToItems } from "@saleor/utils/maps";
-import {
-  useMetadataUpdate,
-  usePrivateMetadataUpdate
-} from "@saleor/utils/metadata/updateMetadata";
-import { useWarehouseList } from "@saleor/warehouses/queries";
 import { warehouseAddPath } from "@saleor/warehouses/urls";
 import React from "react";
 import { useIntl } from "react-intl";
 
+import { PRODUCT_CREATE_FORM_ID } from "./consts";
 import { createHandler } from "./handlers";
 
 interface ProductCreateProps {
@@ -112,15 +113,15 @@ export const ProductCreateView: React.FC<ProductCreateProps> = ({ params }) => {
     result: searchAttributeValuesOpts,
     reset: searchAttributeReset
   } = useAttributeValueSearchHandler(DEFAULT_INITIAL_SEARCH_DATA);
-  const warehouses = useWarehouseList({
+  const warehouses = useWarehouseListQuery({
     displayLoader: true,
     variables: {
       first: 50
     }
   });
-  const [updateMetadata] = useMetadataUpdate({});
-  const [updatePrivateMetadata] = usePrivateMetadataUpdate({});
-  const taxTypes = useTaxTypeList({});
+  const [updateMetadata] = useUpdateMetadataMutation({});
+  const [updatePrivateMetadata] = useUpdatePrivateMetadataMutation({});
+  const taxTypes = useTaxTypeListQuery({});
   const { data: selectedProductType } = useProductTypeQuery({
     variables: {
       id: selectedProductTypeId,
@@ -148,10 +149,17 @@ export const ProductCreateView: React.FC<ProductCreateProps> = ({ params }) => {
     isChannelsModalOpen,
     setCurrentChannels,
     toggleAllChannels
-  } = useChannels(allChannels, params?.action, {
-    closeModal,
-    openModal
-  });
+  } = useChannels(
+    allChannels,
+    params?.action,
+    {
+      closeModal,
+      openModal
+    },
+    {
+      formId: PRODUCT_CREATE_FORM_ID
+    }
+  );
 
   const handleSuccess = (productId: string) => {
     notify({
@@ -165,13 +173,14 @@ export const ProductCreateView: React.FC<ProductCreateProps> = ({ params }) => {
 
   const [uploadFile, uploadFileOpts] = useFileUploadMutation({});
 
-  const [updateChannels, updateChannelsOpts] = useProductChannelListingUpdate(
-    {}
-  );
+  const [
+    updateChannels,
+    updateChannelsOpts
+  ] = useProductChannelListingUpdateMutation({});
   const [
     updateVariantChannels,
     updateVariantChannelsOpts
-  ] = useProductVariantChannelListingUpdate({});
+  ] = useProductVariantChannelListingUpdateMutation({});
 
   const handleBack = () => navigate(productListUrl());
 
@@ -194,10 +203,10 @@ export const ProductCreateView: React.FC<ProductCreateProps> = ({ params }) => {
     }
   });
 
-  const handleSubmit = async data => {
-    const result = await createMetadataCreateHandler(
+  const handleSubmit = async (data: ProductCreateData) => {
+    const errors = await createMetadataCreateHandler(
       createHandler(
-        selectedProductType.productType,
+        selectedProductType?.productType,
         variables => uploadFile({ variables }),
         variables => productCreate({ variables }),
         variables => productVariantCreate({ variables }),
@@ -209,9 +218,11 @@ export const ProductCreateView: React.FC<ProductCreateProps> = ({ params }) => {
       updatePrivateMetadata
     )(data);
 
-    if (result) {
+    if (!errors?.length) {
       setProductCreateComplete(true);
     }
+
+    return errors;
   };
 
   const handleAssignAttributeReferenceClick = (attribute: AttributeInput) =>

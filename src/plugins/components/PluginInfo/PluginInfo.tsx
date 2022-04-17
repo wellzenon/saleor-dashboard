@@ -3,10 +3,9 @@ import CardTitle from "@saleor/components/CardTitle";
 import ControlledCheckbox from "@saleor/components/ControlledCheckbox";
 import FormSpacer from "@saleor/components/FormSpacer";
 import Hr from "@saleor/components/Hr";
-import { PluginErrorFragment } from "@saleor/fragments/types/PluginErrorFragment";
+import { PluginErrorCode, PluginErrorFragment } from "@saleor/graphql";
 import { commonMessages } from "@saleor/intl";
 import { makeStyles } from "@saleor/macaw-ui";
-import { PluginErrorCode } from "@saleor/types/globalTypes";
 import getPluginErrorMessage from "@saleor/utils/errors/plugins";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -83,7 +82,7 @@ const PluginInfo: React.FC<PluginInfoProps> = ({
         <ControlledCheckbox
           name={"active" as keyof PluginDetailsPageFormData}
           label={intl.formatMessage({
-            defaultMessage: "Set plugin as Active"
+            defaultMessage: "Set plugin as active"
           })}
           checked={data.active}
           onChange={onChange}

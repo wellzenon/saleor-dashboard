@@ -1,21 +1,22 @@
 import {
-  Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   TextField
 } from "@material-ui/core";
-import ConfirmButton, {
-  ConfirmButtonTransitionState
-} from "@saleor/components/ConfirmButton";
+import BackButton from "@saleor/components/BackButton";
+import ConfirmButton from "@saleor/components/ConfirmButton";
 import Form from "@saleor/components/Form";
 import Skeleton from "@saleor/components/Skeleton";
-import { PluginConfigurationFragment_configuration } from "@saleor/fragments/types/PluginConfigurationFragment";
+import {
+  ConfigurationItemFragment,
+  ConfigurationTypeFieldEnum
+} from "@saleor/graphql";
 import { buttonMessages } from "@saleor/intl";
+import { ConfirmButtonTransitionState } from "@saleor/macaw-ui";
 import { maybe } from "@saleor/misc";
 import { DialogProps } from "@saleor/types";
-import { ConfigurationTypeFieldEnum } from "@saleor/types/globalTypes";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -24,7 +25,7 @@ export interface PluginSecretFieldDialogFormData {
 }
 export interface PluginSecretFieldDialogProps extends DialogProps {
   confirmButtonState: ConfirmButtonTransitionState;
-  field: PluginConfigurationFragment_configuration;
+  field: ConfigurationItemFragment;
   onConfirm: (data: PluginSecretFieldDialogFormData) => void;
 }
 
@@ -81,13 +82,9 @@ const PluginSecretFieldDialog: React.FC<PluginSecretFieldDialogProps> = ({
               />
             </DialogContent>
             <DialogActions>
-              <Button onClick={onClose}>
-                <FormattedMessage {...buttonMessages.back} />
-              </Button>
+              <BackButton onClick={onClose} />
               <ConfirmButton
                 transitionState={confirmButtonState}
-                color="primary"
-                variant="contained"
                 onClick={submit}
               >
                 <FormattedMessage {...buttonMessages.confirm} />

@@ -1,11 +1,11 @@
-import { GiftCardSettingsErrorFragment } from "@saleor/fragments/types/GiftCardSettingsErrorFragment";
+import { GiftCardSettingsErrorFragment } from "@saleor/graphql";
 import { getCommonFormFieldErrorMessage } from "@saleor/utils/errors/common";
 import { defineMessages, IntlShape } from "react-intl";
 
 export const giftCardSettingsPageMessages = defineMessages({
   title: {
     defaultMessage: "Gift Cards Settings",
-    description: "header"
+    description: "gift card settings header"
   }
 });
 

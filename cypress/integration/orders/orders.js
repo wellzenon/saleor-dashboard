@@ -68,7 +68,7 @@ filterTests({ definedTags: ["all"] }, () => {
           );
         })
         .then(customerResp => {
-          customer = customerResp.body.data.customerCreate.user;
+          customer = customerResp.user;
           createShipping({
             channelId: defaultChannel.id,
             name: randomName,
@@ -116,8 +116,6 @@ filterTests({ definedTags: ["all"] }, () => {
     });
 
     it("should create order with selected channel", () => {
-      // Remove login as admin after fixing SALEOR-3154
-      cy.clearSessionData().loginUserViaRequest();
       cy.visit(urlList.orders)
         .get(ORDERS_SELECTORS.createOrder)
         .click();
@@ -131,7 +129,6 @@ filterTests({ definedTags: ["all"] }, () => {
       });
     });
 
-    // This test will pass after fixing SALEOR-3154
     it("should not be possible to change channel in order", () => {
       createOrder({
         customerId: customer.id,

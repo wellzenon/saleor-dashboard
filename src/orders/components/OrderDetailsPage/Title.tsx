@@ -1,15 +1,30 @@
-import PageTitleWithStatusChip from "@saleor/components/PageTitleWithStatusChip";
+import { OrderDetailsFragment } from "@saleor/graphql";
+import { makeStyles, Pill } from "@saleor/macaw-ui";
 import { transformOrderStatus } from "@saleor/misc";
-import { OrderDetails_order } from "@saleor/orders/types/OrderDetails";
 import React from "react";
 import { useIntl } from "react-intl";
 
-interface TitleProps {
-  order?: OrderDetails_order;
+export interface TitleProps {
+  order?: OrderDetailsFragment;
 }
 
-const Title: React.FC<TitleProps> = ({ order }) => {
+const useStyles = makeStyles(
+  theme => ({
+    container: {
+      alignItems: "center",
+      display: "flex"
+    },
+    statusContainer: {
+      marginLeft: theme.spacing(2)
+    }
+  }),
+  { name: "OrderDetailsTitle" }
+);
+
+const Title: React.FC<TitleProps> = props => {
   const intl = useIntl();
+  const classes = useStyles(props);
+  const { order } = props;
 
   if (!order) {
     return null;
@@ -18,11 +33,15 @@ const Title: React.FC<TitleProps> = ({ order }) => {
   const { localized, status } = transformOrderStatus(order.status, intl);
 
   return (
-    <PageTitleWithStatusChip
-      title={order?.number}
-      statusLabel={localized}
-      statusType={status}
-    />
+    <div className={classes.container}>
+      {intl.formatMessage(
+        { defaultMessage: "Order #{orderNumber}" },
+        { orderNumber: order?.number }
+      )}
+      <div className={classes.statusContainer}>
+        <Pill label={localized} color={status} />
+      </div>
+    </div>
   );
 };
 

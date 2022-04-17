@@ -1,14 +1,11 @@
 import {
-  Button,
   Card,
-  IconButton,
   TableBody,
   TableCell,
   TableFooter,
   TableRow,
   Typography
 } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
 import CardTitle from "@saleor/components/CardTitle";
 import Checkbox from "@saleor/components/Checkbox";
 import ResponsiveTable from "@saleor/components/ResponsiveTable";
@@ -16,10 +13,10 @@ import Skeleton from "@saleor/components/Skeleton";
 import TableCellAvatar from "@saleor/components/TableCellAvatar";
 import TableHead from "@saleor/components/TableHead";
 import TablePagination from "@saleor/components/TablePagination";
-import { makeStyles } from "@saleor/macaw-ui";
+import { ShippingZoneQuery } from "@saleor/graphql";
+import { Button, DeleteIcon, IconButton, makeStyles } from "@saleor/macaw-ui";
 import { renderCollection } from "@saleor/misc";
-import { ShippingZone_shippingZone_shippingMethods_excludedProducts_edges_node } from "@saleor/shipping/types/ShippingZone";
-import { ListActions, ListProps } from "@saleor/types";
+import { ListActions, ListProps, RelayToFlat } from "@saleor/types";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -48,7 +45,9 @@ const useStyles = makeStyles(
 export interface ShippingMethodProductsProps
   extends Pick<ListProps, Exclude<keyof ListProps, "onRowClick">>,
     ListActions {
-  products: ShippingZone_shippingZone_shippingMethods_excludedProducts_edges_node[];
+  products: RelayToFlat<
+    ShippingZoneQuery["shippingZone"]["shippingMethods"][0]["excludedProducts"]
+  >;
   onProductAssign: () => void;
   onProductUnassign: (ids: string[]) => void;
 }
@@ -82,7 +81,7 @@ const ShippingMethodProducts: React.FC<ShippingMethodProductsProps> = props => {
           description: "section header"
         })}
         toolbar={
-          <Button color="primary" variant="text" onClick={onProductAssign}>
+          <Button variant="tertiary" onClick={onProductAssign}>
             <FormattedMessage
               defaultMessage="Assign products"
               description="button"
@@ -156,7 +155,10 @@ const ShippingMethodProducts: React.FC<ShippingMethodProductsProps> = props => {
                     )}
                   </TableCellAvatar>
                   <TableCell className={classes.colAction}>
-                    <IconButton onClick={() => onProductUnassign([product.id])}>
+                    <IconButton
+                      variant="secondary"
+                      onClick={() => onProductUnassign([product.id])}
+                    >
                       <DeleteIcon color="primary" />
                     </IconButton>
                   </TableCell>

@@ -27,7 +27,7 @@ export function createAttribute({
           }
         }
       }
-      attributeErrors{
+      errors{
         field
         message
       }
@@ -81,6 +81,15 @@ export function getAttribute(attributeId) {
       visibleInStorefront
       availableInGrid
       unit
+      choices{
+        edges{
+          node{
+            file{
+              contentType
+            }
+          }
+        }
+      }
     }
   }`;
   return cy.sendRequestWithQuery(query).its("body.data.attribute");

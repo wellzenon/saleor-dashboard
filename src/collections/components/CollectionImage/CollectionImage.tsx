@@ -1,15 +1,14 @@
-import { Button, Card, CardContent, TextField } from "@material-ui/core";
+import { Card, CardContent, TextField } from "@material-ui/core";
 import CardTitle from "@saleor/components/CardTitle";
 import Hr from "@saleor/components/Hr";
 import ImageUpload from "@saleor/components/ImageUpload";
 import MediaTile from "@saleor/components/MediaTile";
 import Skeleton from "@saleor/components/Skeleton";
+import { CollectionDetailsFragment } from "@saleor/graphql";
 import { commonMessages } from "@saleor/intl";
-import { makeStyles } from "@saleor/macaw-ui";
+import { Button, makeStyles } from "@saleor/macaw-ui";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
-import { CollectionDetails_collection_backgroundImage } from "../../types/CollectionDetails";
 
 const useStyles = makeStyles(
   theme => ({
@@ -52,7 +51,7 @@ export interface CollectionImageProps {
   data: {
     backgroundImageAlt: string;
   };
-  image: CollectionDetails_collection_backgroundImage;
+  image: CollectionDetailsFragment["backgroundImage"];
   onChange: (event: React.ChangeEvent<any>) => void;
   onImageDelete: () => void;
   onImageUpload: (file: File) => void;
@@ -76,11 +75,7 @@ export const CollectionImage: React.FC<CollectionImageProps> = props => {
         })}
         toolbar={
           <>
-            <Button
-              variant="text"
-              color="primary"
-              onClick={handleImageUploadButtonClick}
-            >
+            <Button variant="tertiary" onClick={handleImageUploadButtonClick}>
               <FormattedMessage {...commonMessages.uploadImage} />
             </Button>
             <input

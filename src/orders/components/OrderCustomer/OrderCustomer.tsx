@@ -1,4 +1,4 @@
-import { Button, Card, CardContent, Typography } from "@material-ui/core";
+import { Card, CardContent, Typography } from "@material-ui/core";
 import CardTitle from "@saleor/components/CardTitle";
 import ExternalLink from "@saleor/components/ExternalLink";
 import Form from "@saleor/components/Form";
@@ -8,20 +8,22 @@ import Link from "@saleor/components/Link";
 import RequirePermissions from "@saleor/components/RequirePermissions";
 import SingleAutocompleteSelectField from "@saleor/components/SingleAutocompleteSelectField";
 import Skeleton from "@saleor/components/Skeleton";
+import {
+  OrderDetailsFragment,
+  PermissionEnum,
+  SearchCustomersQuery,
+  WarehouseClickAndCollectOptionEnum
+} from "@saleor/graphql";
 import useStateFromProps from "@saleor/hooks/useStateFromProps";
 import { buttonMessages } from "@saleor/intl";
-import { makeStyles } from "@saleor/macaw-ui";
-import { SearchCustomers_search_edges_node } from "@saleor/searches/types/SearchCustomers";
-import { FetchMoreProps, UserPermissionProps } from "@saleor/types";
-import { PermissionEnum } from "@saleor/types/globalTypes";
+import { Button, makeStyles } from "@saleor/macaw-ui";
+import { FetchMoreProps, RelayToFlat } from "@saleor/types";
 import createSingleAutocompleteSelectHandler from "@saleor/utils/handlers/singleAutocompleteSelectChangeHandler";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { customerUrl } from "../../../customers/urls";
-import { createHref, maybe } from "../../../misc";
-import { OrderDetails_order } from "../../types/OrderDetails";
-import { WarehouseClickAndCollectOptionEnum } from "./../../../types/globalTypes";
+import { maybe } from "../../../misc";
 import messages from "./messages";
 
 const useStyles = makeStyles(
@@ -55,11 +57,9 @@ export interface CustomerEditData {
   prevUserEmail?: string;
 }
 
-export interface OrderCustomerProps
-  extends Partial<FetchMoreProps>,
-    UserPermissionProps {
-  order: OrderDetails_order;
-  users?: SearchCustomers_search_edges_node[];
+export interface OrderCustomerProps extends Partial<FetchMoreProps> {
+  order: OrderDetailsFragment;
+  users?: RelayToFlat<SearchCustomersQuery["search"]>;
   loading?: boolean;
   canEditAddresses: boolean;
   canEditCustomer: boolean;
@@ -79,7 +79,6 @@ const OrderCustomer: React.FC<OrderCustomerProps> = props => {
     loading,
     order,
     users,
-    userPermissions,
     onCustomerEdit,
     onBillingAddressEdit,
     onFetchMore: onFetchMoreUsers,
@@ -131,13 +130,11 @@ const OrderCustomer: React.FC<OrderCustomerProps> = props => {
         toolbar={
           !!canEditCustomer && (
             <RequirePermissions
-              userPermissions={userPermissions}
-              requiredPermissions={[PermissionEnum.MANAGE_USERS]}
+              requiredPermissions={[PermissionEnum.MANAGE_ORDERS]}
             >
               <Button
                 data-test-id="edit-customer"
-                color="primary"
-                variant="text"
+                variant="tertiary"
                 disabled={!onCustomerEdit}
                 onClick={toggleEditMode}
               >
@@ -151,7 +148,7 @@ const OrderCustomer: React.FC<OrderCustomerProps> = props => {
         {user === undefined ? (
           <Skeleton />
         ) : isInEditMode && canEditCustomer ? (
-          <Form initial={{ query: "" }}>
+          <Form confirmLeave initial={{ query: "" }}>
             {({ change, data }) => {
               const handleChange = (event: React.ChangeEvent<any>) => {
                 change(event);
@@ -210,13 +207,12 @@ const OrderCustomer: React.FC<OrderCustomerProps> = props => {
               {user.email}
             </Typography>
             <RequirePermissions
-              userPermissions={userPermissions}
               requiredPermissions={[PermissionEnum.MANAGE_USERS]}
             >
               <div>
                 <Link
                   underline={false}
-                  href={createHref(customerUrl(user.id))}
+                  href={customerUrl(user.id)}
                   onClick={onProfileView}
                 >
                   <FormattedMessage
@@ -282,8 +278,7 @@ const OrderCustomer: React.FC<OrderCustomerProps> = props => {
             <div className={classes.sectionHeaderToolbar}>
               <Button
                 data-test-id="edit-shipping-address"
-                color="primary"
-                variant="text"
+                variant="tertiary"
                 onClick={onShippingAddressEdit}
                 disabled={!onShippingAddressEdit && user === undefined}
               >
@@ -341,8 +336,7 @@ const OrderCustomer: React.FC<OrderCustomerProps> = props => {
             <div className={classes.sectionHeaderToolbar}>
               <Button
                 data-test-id="edit-billing-address"
-                color="primary"
-                variant="text"
+                variant="tertiary"
                 onClick={onBillingAddressEdit}
                 disabled={!onBillingAddressEdit && user === undefined}
               >

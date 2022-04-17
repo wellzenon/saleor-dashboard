@@ -1,20 +1,23 @@
-import { Button, Card } from "@material-ui/core";
+import { Card } from "@material-ui/core";
+import { useUserPermissions } from "@saleor/auth/hooks/useUserPermissions";
 import Container from "@saleor/components/Container";
 import FilterBar from "@saleor/components/FilterBar";
 import PageHeader from "@saleor/components/PageHeader";
 import { CustomerListUrlSortField } from "@saleor/customers/urls";
+import { ListCustomersQuery } from "@saleor/graphql";
 import { sectionNames } from "@saleor/intl";
+import { Button } from "@saleor/macaw-ui";
 import {
   FilterPageProps,
   ListActions,
   PageListProps,
+  RelayToFlat,
   SortPage,
   TabPageProps
 } from "@saleor/types";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { ListCustomers_customers_edges_node } from "../../types/ListCustomers";
 import CustomerList from "../CustomerList/CustomerList";
 import {
   createFilterStructure,
@@ -28,7 +31,7 @@ export interface CustomerListPageProps
     FilterPageProps<CustomerFilterKeys, CustomerListFilterOpts>,
     SortPage<CustomerListUrlSortField>,
     TabPageProps {
-  customers: ListCustomers_customers_edges_node[];
+  customers: RelayToFlat<ListCustomersQuery["customers"]>;
 }
 
 const CustomerListPage: React.FC<CustomerListPageProps> = ({
@@ -47,16 +50,16 @@ const CustomerListPage: React.FC<CustomerListPageProps> = ({
 }) => {
   const intl = useIntl();
 
-  const structure = createFilterStructure(intl, filterOpts);
+  const userPermissions = useUserPermissions();
+  const structure = createFilterStructure(intl, filterOpts, userPermissions);
 
   return (
     <Container>
       <PageHeader title={intl.formatMessage(sectionNames.customers)}>
         <Button
-          color="primary"
-          variant="contained"
+          variant="primary"
           onClick={onAdd}
-          data-test-id="createCustomer"
+          data-test-id="create-customer"
         >
           <FormattedMessage
             defaultMessage="Create customer"

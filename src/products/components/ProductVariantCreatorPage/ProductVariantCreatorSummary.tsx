@@ -1,32 +1,33 @@
-import { Card, IconButton, TextField } from "@material-ui/core";
+import { Card, TextField } from "@material-ui/core";
 import blue from "@material-ui/core/colors/blue";
 import cyan from "@material-ui/core/colors/cyan";
 import green from "@material-ui/core/colors/green";
 import purple from "@material-ui/core/colors/purple";
 import yellow from "@material-ui/core/colors/yellow";
-import DeleteIcon from "@material-ui/icons/Delete";
 import { ChannelPriceData } from "@saleor/channels/utils";
 import CardTitle from "@saleor/components/CardTitle";
 import Hr from "@saleor/components/Hr";
 import PriceField from "@saleor/components/PriceField";
-import { WarehouseFragment } from "@saleor/fragments/types/WarehouseFragment";
-import { makeStyles } from "@saleor/macaw-ui";
-import { ProductVariantBulkCreate_productVariantBulkCreate_errors } from "@saleor/products/types/ProductVariantBulkCreate";
-import { ProductVariantBulkCreateInput } from "@saleor/types/globalTypes";
+import {
+  BulkProductErrorFragment,
+  ProductFragment,
+  ProductVariantBulkCreateInput,
+  WarehouseFragment
+} from "@saleor/graphql";
+import { DeleteIcon, IconButton, makeStyles } from "@saleor/macaw-ui";
 import { getFormErrors } from "@saleor/utils/errors";
 import { getBulkProductErrorMessage } from "@saleor/utils/errors/product";
 import classNames from "classnames";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { ProductDetails_product_productType_variantAttributes } from "../../types/ProductDetails";
 import { Attribute, ChannelPrice, ProductVariantCreateFormData } from "./form";
 
 export interface ProductVariantCreatorSummaryProps {
-  attributes: ProductDetails_product_productType_variantAttributes[];
+  attributes: ProductFragment["productType"]["variantAttributes"];
   channelListings: ChannelPriceData[];
   data: ProductVariantCreateFormData;
-  errors: ProductVariantBulkCreate_productVariantBulkCreate_errors[];
+  errors: BulkProductErrorFragment[];
   warehouses: WarehouseFragment[];
   onVariantSkuChange: (variantIndex: number, value: string) => void;
   onVariantStockDataChange: (
@@ -103,7 +104,8 @@ const useStyles = makeStyles<ProductVariantCreatorSummaryProps, ClassKey>(
           props.data.variants[0].stocks
             .length}, minmax(180px, auto)) 140px 64px`,
       overflowX: "scroll",
-      rowGap: theme.spacing()
+      rowGap: theme.spacing(),
+      paddingBottom: 3
     }
   }),
   {
@@ -318,6 +320,7 @@ const ProductVariantCreatorSummary: React.FC<ProductVariantCreatorSummaryProps> 
               </div>
               <div className={classes.col}>
                 <IconButton
+                  variant="secondary"
                   className={classes.delete}
                   color="primary"
                   onClick={() => onVariantDelete(variantIndex)}

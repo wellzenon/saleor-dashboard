@@ -38,7 +38,7 @@ export const commonMessages = defineMessages({
     defaultMessage: "Drafts"
   },
   email: {
-    defaultMessage: "E-mail Address"
+    defaultMessage: "Email address"
   },
   endDate: {
     defaultMessage: "End Date"
@@ -84,11 +84,17 @@ export const commonMessages = defineMessages({
   savedChanges: {
     defaultMessage: "Saved changes"
   },
+  selected: {
+    defaultMessage: "Selected"
+  },
   sessionExpired: {
     defaultMessage: "Your session has expired. Please log in again to continue."
   },
   somethingWentWrong: {
     defaultMessage: "Saleor ran into an unexpected problem"
+  },
+  defaultErrorTitle: {
+    defaultMessage: "Something went wrong"
   },
   startDate: {
     defaultMessage: "Start Date"
@@ -98,6 +104,9 @@ export const commonMessages = defineMessages({
   },
   status: {
     defaultMessage: "Status"
+  },
+  paymentStatus: {
+    defaultMessage: "Payment status"
   },
   summary: {
     defaultMessage: "Summary"
@@ -138,6 +147,12 @@ export const errorMessages = defineMessages({
   },
   preorderEndDateInFutureErrorText: {
     defaultMessage: "Preorder end time needs to be set in the future"
+  },
+  baseCodeErrorMessage: {
+    defaultMessage: "Error code {errorCode} {fieldError}"
+  },
+  codeErrorFieldMessage: {
+    defaultMessage: "on field {fieldName}"
   }
 });
 
@@ -148,6 +163,10 @@ export const buttonMessages = defineMessages({
   },
   approve: {
     defaultMessage: "Approve",
+    description: "button"
+  },
+  assign: {
+    defaultMessage: "Assign",
     description: "button"
   },
   back: {
@@ -232,6 +251,10 @@ export const sectionNames = defineMessages({
   apps: {
     defaultMessage: "Apps",
     description: "apps section name"
+  },
+  appExtensions: {
+    defaultMessage: "Apps",
+    description: "app extensions subsection"
   },
   attributes: {
     defaultMessage: "Attributes",
@@ -344,6 +367,83 @@ export const sectionNames = defineMessages({
   webhooks: {
     defaultMessage: "Webhooks",
     description: "webhooks section name"
+  }
+});
+
+export const commonStatusMessages = defineMessages({
+  cancelled: {
+    defaultMessage: "Cancelled",
+    description: "payment status"
+  }
+});
+
+export const orderStatusMessages = defineMessages({
+  draft: {
+    defaultMessage: "Draft",
+    description: "order status"
+  },
+  fulfilled: {
+    defaultMessage: "Fulfilled",
+    description: "order status"
+  },
+  partiallyFulfilled: {
+    defaultMessage: "Partially fulfilled",
+    description: "order status"
+  },
+  partiallyReturned: {
+    defaultMessage: "Partially returned",
+    description: "order status"
+  },
+  readyToCapture: {
+    defaultMessage: "Ready to capture",
+    description: "order status"
+  },
+  readyToFulfill: {
+    defaultMessage: "Ready to fulfill",
+    description: "order status"
+  },
+  returned: {
+    defaultMessage: "Returned",
+    description: "order status"
+  },
+  unconfirmed: {
+    defaultMessage: "Unconfirmed",
+    description: "order status"
+  },
+  unfulfilled: {
+    defaultMessage: "Unfulfilled",
+    description: "order status"
+  }
+});
+
+export const paymentStatusMessages = defineMessages({
+  paid: {
+    defaultMessage: "Fully paid",
+    description: "payment status"
+  },
+  partiallyPaid: {
+    defaultMessage: "Partially paid",
+    description: "payment status"
+  },
+  partiallyRefunded: {
+    defaultMessage: "Partially refunded",
+    description: "payment status"
+  },
+  refunded: {
+    defaultMessage: "Fully refunded",
+    description: "payment status"
+  },
+  unpaid: {
+    defaultMessage: "Unpaid",
+    description: "payment status"
+  },
+  pending: {
+    defaultMessage: "Pending",
+    description: "payment status"
+  },
+  refused: {
+    defaultMessage: "Refused",
+    description: "payment status"
   }
 });
 

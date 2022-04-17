@@ -1,8 +1,14 @@
+import { CheckIfSaveIsDisabledFnType } from "@saleor/components/Form";
+import { FormId } from "@saleor/components/Form/ExitFormDialogProvider";
+import {
+  useExitFormDialog,
+  UseExitFormDialogResult
+} from "@saleor/components/Form/useExitFormDialog";
+import useHandleFormSubmit from "@saleor/hooks/useHandleFormSubmit";
 import { toggle } from "@saleor/utils/lists";
 import isEqual from "lodash/isEqual";
 import omit from "lodash/omit";
-import React from "react";
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import useStateFromProps from "./useStateFromProps";
 
@@ -12,7 +18,7 @@ export interface ChangeEvent<TData = any> {
     value: TData;
   };
 }
-export type SubmitPromise = Promise<any[]>;
+export type SubmitPromise<TData = any> = Promise<TData>;
 
 export type FormChange = (event: ChangeEvent, cb?: () => void) => void;
 
@@ -20,19 +26,39 @@ export type FormErrors<T> = {
   [field in keyof T]?: string | React.ReactNode;
 };
 
-export interface UseFormResult<T> {
-  change: FormChange;
-  data: T;
-  hasChanged: boolean;
+export interface UseFormOpts<T> {
+  confirmLeave: boolean;
+  formId?: FormId;
+  checkIfSaveIsDisabled?: CheckIfSaveIsDisabledFnType<T>;
+  disabled?: boolean;
+}
+
+export interface UseFormResult<TData>
+  extends CommonUseFormResult<TData>,
+    Pick<UseExitFormDialogResult, "formId"> {
   reset: () => void;
-  set: (data: Partial<T>) => void;
-  submit: () => void;
+  set: (data: Partial<TData>) => void;
   triggerChange: () => void;
-  toggleValue: FormChange;
-  errors: FormErrors<T>;
   setChanged: (value: boolean) => void;
-  setError: (name: keyof T, error: string | React.ReactNode) => void;
-  clearErrors: (name?: keyof T | Array<keyof T>) => void;
+  handleChange: FormChange;
+  toggleValue: FormChange;
+  errors: FormErrors<TData>;
+  setError: (name: keyof TData, error: string | React.ReactNode) => void;
+  clearErrors: (name?: keyof TData | Array<keyof TData>) => void;
+  setIsSubmitDisabled: (value: boolean) => void;
+}
+
+export interface CommonUseFormResult<TData> {
+  data: TData;
+  change: FormChange;
+  hasChanged: boolean;
+  submit: (dataOrEvent?: any) => SubmitPromise<any[]>;
+  isSaveDisabled?: boolean;
+}
+
+export interface CommonUseFormResultWithHandlers<TData, THandlers>
+  extends CommonUseFormResult<TData> {
+  handlers: THandlers;
 }
 
 type FormData = Record<string, any | any[]>;
@@ -60,16 +86,77 @@ function handleRefresh<T extends FormData>(
   }
 }
 
-function useForm<T extends FormData>(
-  initial: T,
-  onSubmit?: (data: T) => SubmitPromise | void
+function useForm<T extends FormData, TErrors>(
+  initialData: T,
+  onSubmit?: (data: T) => SubmitPromise<TErrors[]> | void,
+  opts: UseFormOpts<T> = { confirmLeave: false, formId: undefined }
 ): UseFormResult<T> {
+  const {
+    confirmLeave,
+    formId: propsFormId,
+    checkIfSaveIsDisabled,
+    disabled
+  } = opts;
   const [hasChanged, setChanged] = useState(false);
   const [errors, setErrors] = useState<FormErrors<T>>({});
-  const [data, setData] = useStateFromProps(initial, {
+  const [data, setData] = useStateFromProps(initialData, {
     mergeFunc: merge,
-    onRefresh: newData => handleRefresh(data, newData, setChanged)
+    onRefresh: newData => handleRefresh(data, newData, handleSetChanged)
   });
+
+  const basicFormDisableConditions = () => !hasChanged || disabled;
+
+  const isSaveDisabled = () => {
+    if (checkIfSaveIsDisabled) {
+      return checkIfSaveIsDisabled({
+        ...data,
+        hasChanged
+      });
+    }
+
+    if (disabled !== undefined) {
+      return basicFormDisableConditions();
+    }
+
+    return false;
+  };
+
+  const {
+    setIsDirty: setIsFormDirtyInExitDialog,
+    setExitDialogSubmitRef,
+    setEnableExitDialog,
+    setIsSubmitDisabled,
+    formId
+  } = useExitFormDialog({
+    formId: propsFormId,
+    isDisabled: isSaveDisabled()
+  });
+
+  const handleFormSubmit = useHandleFormSubmit({
+    formId,
+    onSubmit,
+    setChanged
+  });
+
+  const handleSetChanged = (value: boolean = true) => {
+    setChanged(value);
+
+    if (confirmLeave) {
+      setIsFormDirtyInExitDialog(value);
+    }
+  };
+
+  const setExitDialogData = () => {
+    setEnableExitDialog(true);
+
+    if (!onSubmit) {
+      return;
+    }
+
+    setExitDialogSubmitRef(submit);
+  };
+
+  useEffect(setExitDialogData, [onSubmit]);
 
   function toggleValue(event: ChangeEvent, cb?: () => void) {
     const { name, value } = event.target;
@@ -77,8 +164,9 @@ function useForm<T extends FormData>(
 
     if (Array.isArray(field)) {
       if (!hasChanged) {
-        setChanged(true);
+        handleSetChanged(true);
       }
+
       setData({
         ...data,
         [name]: toggle(value, field, isEqual)
@@ -90,6 +178,11 @@ function useForm<T extends FormData>(
     }
   }
 
+  const handleChange: FormChange = event => {
+    change(event);
+    handleSetChanged(true);
+  };
+
   function change(event: ChangeEvent) {
     const { name, value } = event.target;
 
@@ -98,7 +191,7 @@ function useForm<T extends FormData>(
       return;
     } else {
       if (data[name] !== value) {
-        setChanged(true);
+        handleSetChanged(true);
       }
       setData(data => ({
         ...data,
@@ -108,7 +201,7 @@ function useForm<T extends FormData>(
   }
 
   function reset() {
-    setData(initial);
+    setData(initialData);
   }
 
   function set(newData: Partial<T>, setHasChanged = true) {
@@ -116,23 +209,15 @@ function useForm<T extends FormData>(
       ...data,
       ...newData
     }));
-    setChanged(setHasChanged);
+    handleSetChanged(setHasChanged);
   }
 
   async function submit() {
     if (typeof onSubmit === "function" && !Object.keys(errors).length) {
-      const result = onSubmit(data);
-      if (result) {
-        const errors = await result;
-        if (errors?.length === 0) {
-          setChanged(false);
-        }
-      }
-    }
-  }
+      const result = handleFormSubmit(data);
 
-  function triggerChange() {
-    setChanged(true);
+      return result;
+    }
   }
 
   const setError = (field: keyof T, error: string | React.ReactNode) =>
@@ -149,6 +234,7 @@ function useForm<T extends FormData>(
   };
 
   return {
+    formId,
     setError,
     errors,
     change,
@@ -156,11 +242,14 @@ function useForm<T extends FormData>(
     data,
     hasChanged,
     reset,
-    setChanged,
     set,
     submit,
     toggleValue,
-    triggerChange
+    handleChange,
+    triggerChange: handleSetChanged,
+    setChanged: handleSetChanged,
+    setIsSubmitDisabled,
+    isSaveDisabled: isSaveDisabled()
   };
 }
 

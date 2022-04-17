@@ -3,33 +3,33 @@ import { createCollectionChannels } from "@saleor/channels/utils";
 import useAppChannel from "@saleor/components/AppLayout/AppChannelContext";
 import ChannelsAvailabilityDialog from "@saleor/components/ChannelsAvailabilityDialog";
 import { WindowTitle } from "@saleor/components/WindowTitle";
+import {
+  CollectionCreateInput,
+  useCollectionChannelListingUpdateMutation,
+  useCreateCollectionMutation,
+  useUpdateMetadataMutation,
+  useUpdatePrivateMetadataMutation
+} from "@saleor/graphql";
 import useChannels from "@saleor/hooks/useChannels";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
 import { commonMessages } from "@saleor/intl";
+import { getMutationErrors } from "@saleor/misc";
 import createDialogActionHandlers from "@saleor/utils/handlers/dialogActionHandlers";
 import createMetadataCreateHandler from "@saleor/utils/handlers/metadataCreateHandler";
-import {
-  useMetadataUpdate,
-  usePrivateMetadataUpdate
-} from "@saleor/utils/metadata/updateMetadata";
 import { getParsedDataForJsonStringField } from "@saleor/utils/richText/misc";
 import React from "react";
 import { useIntl } from "react-intl";
 
-import { CollectionCreateInput } from "../../types/globalTypes";
 import CollectionCreatePage from "../components/CollectionCreatePage/CollectionCreatePage";
 import { CollectionCreateData } from "../components/CollectionCreatePage/form";
-import {
-  useCollectionChannelListingUpdate,
-  useCollectionCreateMutation
-} from "../mutations";
 import {
   collectionAddUrl,
   CollectionCreateUrlQueryParams,
   collectionListUrl,
   collectionUrl
 } from "../urls";
+import { COLLECTION_CREATE_FORM_ID } from "./consts";
 
 interface CollectionCreateProps {
   params: CollectionCreateUrlQueryParams;
@@ -41,8 +41,8 @@ export const CollectionCreate: React.FC<CollectionCreateProps> = ({
   const navigate = useNavigator();
   const notify = useNotifier();
   const intl = useIntl();
-  const [updateMetadata] = useMetadataUpdate({});
-  const [updatePrivateMetadata] = usePrivateMetadataUpdate({});
+  const [updateMetadata] = useUpdateMetadataMutation({});
+  const [updatePrivateMetadata] = useUpdatePrivateMetadataMutation({});
 
   const [openModal, closeModal] = createDialogActionHandlers<
     ChannelsAction,
@@ -52,7 +52,7 @@ export const CollectionCreate: React.FC<CollectionCreateProps> = ({
   const [
     updateChannels,
     updateChannelsOpts
-  ] = useCollectionChannelListingUpdate({});
+  ] = useCollectionChannelListingUpdateMutation({});
   const { availableChannels } = useAppChannel(false);
 
   const allChannels = createCollectionChannels(
@@ -72,9 +72,14 @@ export const CollectionCreate: React.FC<CollectionCreateProps> = ({
     isChannelsModalOpen,
     setCurrentChannels,
     toggleAllChannels
-  } = useChannels(allChannels, params?.action, { closeModal, openModal });
+  } = useChannels(
+    allChannels,
+    params?.action,
+    { closeModal, openModal },
+    { formId: COLLECTION_CREATE_FORM_ID }
+  );
 
-  const [createCollection, createCollectionOpts] = useCollectionCreateMutation({
+  const [createCollection, createCollectionOpts] = useCreateCollectionMutation({
     onCompleted: data => {
       if (data.collectionCreate.errors.length === 0) {
         notify({
@@ -130,7 +135,7 @@ export const CollectionCreate: React.FC<CollectionCreateProps> = ({
       });
     }
 
-    return id;
+    return { id, errors: getMutationErrors(result) };
   };
 
   const handleSubmit = createMetadataCreateHandler(

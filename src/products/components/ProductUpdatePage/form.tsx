@@ -15,11 +15,19 @@ import {
   ChannelPriceArgs
 } from "@saleor/channels/utils";
 import { AttributeInput } from "@saleor/components/Attributes";
+import { useExitFormDialog } from "@saleor/components/Form/useExitFormDialog";
 import { MetadataFormData } from "@saleor/components/Metadata";
 import { MultiAutocompleteChoiceType } from "@saleor/components/MultiAutocompleteSelectField";
 import { RichTextEditorChange } from "@saleor/components/RichTextEditor";
 import { SingleAutocompleteChoiceType } from "@saleor/components/SingleAutocompleteSelectField";
+import {
+  ProductFragment,
+  SearchPagesQuery,
+  SearchProductsQuery,
+  SearchWarehousesQuery
+} from "@saleor/graphql";
 import useForm, {
+  CommonUseFormResultWithHandlers,
   FormChange,
   FormErrors,
   SubmitPromise
@@ -29,8 +37,8 @@ import useFormset, {
   FormsetChange,
   FormsetData
 } from "@saleor/hooks/useFormset";
+import useHandleFormSubmit from "@saleor/hooks/useHandleFormSubmit";
 import { errorMessages } from "@saleor/intl";
-import { ProductDetails_product } from "@saleor/products/types/ProductDetails";
 import {
   getAttributeInputFromProduct,
   getProductUpdatePageFormData,
@@ -46,19 +54,16 @@ import {
   validateCostPrice,
   validatePrice
 } from "@saleor/products/utils/validation";
+import { PRODUCT_UPDATE_FORM_ID } from "@saleor/products/views/ProductUpdate/consts";
 import { ChannelsWithVariantsData } from "@saleor/products/views/ProductUpdate/types";
-import { SearchPages_search_edges_node } from "@saleor/searches/types/SearchPages";
-import { SearchProducts_search_edges_node } from "@saleor/searches/types/SearchProducts";
-import { SearchWarehouses_search_edges_node } from "@saleor/searches/types/SearchWarehouses";
-import { FetchMoreProps, ReorderEvent } from "@saleor/types";
+import { FetchMoreProps, RelayToFlat, ReorderEvent } from "@saleor/types";
 import { arrayDiff } from "@saleor/utils/arrays";
-import handleFormSubmit from "@saleor/utils/handlers/handleFormSubmit";
 import createMultiAutocompleteSelectHandler from "@saleor/utils/handlers/multiAutocompleteSelectChangeHandler";
 import createSingleAutocompleteSelectHandler from "@saleor/utils/handlers/singleAutocompleteSelectChangeHandler";
 import getMetadata from "@saleor/utils/metadata/getMetadata";
 import useMetadataChangeTrigger from "@saleor/utils/metadata/useMetadataChangeTrigger";
 import useRichText from "@saleor/utils/richText/useRichText";
-import React from "react";
+import React, { useEffect } from "react";
 import { useIntl } from "react-intl";
 
 import { ProductStockFormsetData, ProductStockInput } from "../ProductStocks";
@@ -147,14 +152,12 @@ export interface ProductUpdateHandlers
   fetchReferences: (value: string) => void;
   fetchMoreReferences: FetchMoreProps;
 }
-export interface UseProductUpdateFormResult {
-  change: FormChange;
-  data: ProductUpdateData;
+export interface UseProductUpdateFormResult
+  extends CommonUseFormResultWithHandlers<
+    ProductUpdateData,
+    ProductUpdateHandlers
+  > {
   formErrors: FormErrors<ProductUpdateSubmitData>;
-  disabled: boolean;
-  handlers: ProductUpdateHandlers;
-  hasChanged: boolean;
-  submit: () => Promise<boolean>;
 }
 
 export interface UseProductUpdateFormOpts
@@ -168,14 +171,14 @@ export interface UseProductUpdateFormOpts
   >;
   setSelectedTaxType: React.Dispatch<React.SetStateAction<string>>;
   selectedCollections: MultiAutocompleteChoiceType[];
-  warehouses: SearchWarehouses_search_edges_node[];
+  warehouses: RelayToFlat<SearchWarehousesQuery["search"]>;
   channelsData: ChannelData[];
   hasVariants: boolean;
   currentChannels: ChannelData[];
   setChannels: (data: ChannelData[]) => void;
   setChannelsData: (data: ChannelData[]) => void;
-  referencePages: SearchPages_search_edges_node[];
-  referenceProducts: SearchProducts_search_edges_node[];
+  referencePages: RelayToFlat<SearchPagesQuery["search"]>;
+  referenceProducts: RelayToFlat<SearchProductsQuery["search"]>;
   fetchReferencePages?: (data: string) => void;
   fetchMoreReferencePages?: FetchMoreProps;
   fetchReferenceProducts?: (data: string) => void;
@@ -187,12 +190,14 @@ export interface UseProductUpdateFormOpts
 
 export interface ProductUpdateFormProps extends UseProductUpdateFormOpts {
   children: (props: UseProductUpdateFormResult) => React.ReactNode;
-  product: ProductDetails_product;
+  product: ProductFragment;
   onSubmit: (data: ProductUpdateSubmitData) => SubmitPromise;
+  disabled: boolean;
+  hasChannelChanged: boolean;
 }
 
 const getStocksData = (
-  product: ProductDetails_product,
+  product: ProductFragment,
   stocks: FormsetData<ProductStockFormsetData, string>
 ) => {
   if (product?.productType?.hasVariants) {
@@ -216,13 +221,13 @@ const getStocksData = (
 };
 
 function useProductUpdateForm(
-  product: ProductDetails_product,
+  product: ProductFragment,
   onSubmit: (data: ProductUpdateSubmitData) => SubmitPromise,
+  disabled: boolean,
+  hasChannelChanged: boolean,
   opts: UseProductUpdateFormOpts
 ): UseProductUpdateFormResult {
   const intl = useIntl();
-  const [changed, setChanged] = React.useState(false);
-  const triggerChange = () => setChanged(true);
 
   const form = useForm(
     getProductUpdatePageFormData(
@@ -231,8 +236,21 @@ function useProductUpdateForm(
       opts.currentChannels,
       opts.channelsData,
       opts.channelsWithVariants
-    )
+    ),
+    undefined,
+    { confirmLeave: true, formId: PRODUCT_UPDATE_FORM_ID }
   );
+
+  const {
+    handleChange,
+    triggerChange,
+    toggleValue,
+    data: formData,
+    setChanged,
+    hasChanged,
+    setIsSubmitDisabled
+  } = form;
+
   const attributes = useFormset(getAttributeInputFromProduct(product));
   const attributesWithNewFileValue = useFormset<null, File>([]);
   const stocks = useFormset(getStockInputFromProduct(product));
@@ -241,18 +259,18 @@ function useProductUpdateForm(
     triggerChange
   });
 
+  const { setExitDialogSubmitRef } = useExitFormDialog({
+    formId: PRODUCT_UPDATE_FORM_ID
+  });
+
   const {
     isMetadataModified,
     isPrivateMetadataModified,
     makeChangeHandler: makeMetadataChangeHandler
   } = useMetadataChangeTrigger();
 
-  const handleChange: FormChange = (event, cb) => {
-    form.change(event, cb);
-    triggerChange();
-  };
   const handleCollectionSelect = createMultiAutocompleteSelectHandler(
-    event => form.toggleValue(event, triggerChange),
+    event => toggleValue(event),
     opts.setSelectedCollections,
     opts.selectedCollections,
     opts.collections
@@ -350,7 +368,7 @@ function useProductUpdateForm(
   );
 
   const data: ProductUpdateData = {
-    ...form.data,
+    ...formData,
     channelListings: opts.currentChannels,
     channelsData: opts.channelsData,
     attributes: getAttributesDisplayData(
@@ -383,23 +401,53 @@ function useProductUpdateForm(
     return errors;
   };
 
-  const submit = async () =>
-    handleFormSubmit(getSubmitData(), handleSubmit, setChanged);
+  const handleFormSubmit = useHandleFormSubmit({
+    formId: form.formId,
+    onSubmit: handleSubmit,
+    setChanged
+  });
 
-  const disabled =
-    (!opts.hasVariants &&
-      data.channelListings.some(
-        channel =>
-          validatePrice(channel.price) || validateCostPrice(channel.costPrice)
-      )) ||
-    (data.isPreorder &&
+  const submit = async () => handleFormSubmit(getSubmitData());
+
+  useEffect(() => setExitDialogSubmitRef(submit), [submit]);
+
+  const shouldEnableSave = () => {
+    if (!data.name) {
+      return false;
+    }
+
+    if (
+      data.isPreorder &&
       data.hasPreorderEndDate &&
-      !!form.errors.preorderEndDateTime);
+      !!form.errors.preorderEndDateTime
+    ) {
+      return false;
+    }
+
+    if (opts.hasVariants) {
+      return true;
+    }
+
+    const hasInvalidChannelListingPrices = data.channelListings.some(
+      channel =>
+        validatePrice(channel.price) || validateCostPrice(channel.costPrice)
+    );
+
+    if (hasInvalidChannelListingPrices) {
+      return false;
+    }
+    return true;
+  };
+
+  const isSaveEnabled = !shouldEnableSave();
+
+  const isSaveDisabled =
+    disabled || isSaveEnabled || (!hasChanged && !hasChannelChanged);
+  setIsSubmitDisabled(isSaveDisabled);
 
   return {
     change: handleChange,
     data,
-    disabled,
     formErrors: form.errors,
     handlers: {
       addStock: handleStockAdd,
@@ -422,8 +470,9 @@ function useProductUpdateForm(
       selectCollection: handleCollectionSelect,
       selectTaxRate: handleTaxTypeSelect
     },
-    hasChanged: changed,
-    submit
+    hasChanged,
+    submit,
+    isSaveDisabled
   };
 }
 
@@ -431,9 +480,17 @@ const ProductUpdateForm: React.FC<ProductUpdateFormProps> = ({
   children,
   product,
   onSubmit,
+  disabled,
+  hasChannelChanged,
   ...rest
 }) => {
-  const props = useProductUpdateForm(product, onSubmit, rest);
+  const props = useProductUpdateForm(
+    product,
+    onSubmit,
+    disabled,
+    hasChannelChanged,
+    rest
+  );
 
   return <form onSubmit={props.submit}>{children(props)}</form>;
 };

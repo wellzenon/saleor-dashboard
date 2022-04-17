@@ -1,5 +1,4 @@
 import placeholderImg from "@assets/images/placeholder255x255.png";
-import { useAttributeValueDeleteMutation } from "@saleor/attributes/mutations";
 import {
   getAttributesAfterFileAttributesUpdate,
   mergeAttributeValueDeleteErrors,
@@ -15,45 +14,42 @@ import { AttributeInput } from "@saleor/components/Attributes";
 import NotFoundPage from "@saleor/components/NotFoundPage";
 import { WindowTitle } from "@saleor/components/WindowTitle";
 import { DEFAULT_INITIAL_SEARCH_DATA } from "@saleor/config";
-import { useFileUploadMutation } from "@saleor/files/mutations";
+import {
+  ProductErrorWithAttributesFragment,
+  ProductVariantFragment,
+  useAttributeValueDeleteMutation,
+  useFileUploadMutation,
+  useProductVariantChannelListingUpdateMutation,
+  useProductVariantDetailsQuery,
+  useProductVariantPreorderDeactivateMutation,
+  useProductVariantReorderMutation,
+  useUpdateMetadataMutation,
+  useUpdatePrivateMetadataMutation,
+  useVariantDeleteMutation,
+  useVariantMediaAssignMutation,
+  useVariantMediaUnassignMutation,
+  useVariantUpdateMutation,
+  useWarehouseListQuery
+} from "@saleor/graphql";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
 import useOnSetDefaultVariant from "@saleor/hooks/useOnSetDefaultVariant";
 import useShop from "@saleor/hooks/useShop";
 import { commonMessages } from "@saleor/intl";
-import {
-  useProductVariantChannelListingUpdate,
-  useProductVariantPreorderDeactivateMutation
-} from "@saleor/products/mutations";
-import { ProductVariantDetails_productVariant } from "@saleor/products/types/ProductVariantDetails";
 import usePageSearch from "@saleor/searches/usePageSearch";
 import useProductSearch from "@saleor/searches/useProductSearch";
 import useAttributeValueSearchHandler from "@saleor/utils/handlers/attributeValueSearchHandler";
 import createDialogActionHandlers from "@saleor/utils/handlers/dialogActionHandlers";
 import createMetadataUpdateHandler from "@saleor/utils/handlers/metadataUpdateHandler";
 import { mapEdgesToItems } from "@saleor/utils/maps";
-import {
-  useMetadataUpdate,
-  usePrivateMetadataUpdate
-} from "@saleor/utils/metadata/updateMetadata";
-import { useWarehouseList } from "@saleor/warehouses/queries";
 import { warehouseAddPath } from "@saleor/warehouses/urls";
 import React, { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 
-import { weight } from "../../misc";
+import { extractMutationErrors, weight } from "../../misc";
 import ProductVariantDeleteDialog from "../components/ProductVariantDeleteDialog";
 import ProductVariantPage from "../components/ProductVariantPage";
 import { ProductVariantUpdateSubmitData } from "../components/ProductVariantPage/form";
-import {
-  useProductVariantReorderMutation,
-  useVariantDeleteMutation,
-  useVariantMediaAssignMutation,
-  useVariantMediaUnassignMutation,
-  useVariantUpdateMutation
-} from "../mutations";
-import { useProductVariantQuery } from "../queries";
-import { VariantUpdate_productVariantUpdate_errors } from "../types/VariantUpdate";
 import {
   productUrl,
   productVariantAddUrl,
@@ -79,34 +75,34 @@ export const ProductVariant: React.FC<ProductUpdateProps> = ({
   const navigate = useNavigator();
   const notify = useNotifier();
   const intl = useIntl();
-  const [errors, setErrors] = useState<
-    VariantUpdate_productVariantUpdate_errors[]
-  >([]);
+  const [errors, setErrors] = useState<ProductErrorWithAttributesFragment[]>(
+    []
+  );
   useEffect(() => {
     setErrors([]);
   }, [variantId]);
 
-  const warehouses = useWarehouseList({
+  const warehouses = useWarehouseListQuery({
     displayLoader: true,
     variables: {
       first: 50
     }
   });
 
-  const { data, loading } = useProductVariantQuery({
+  const { data, loading } = useProductVariantDetailsQuery({
     displayLoader: true,
     variables: {
       id: variantId,
       firstValues: 10
     }
   });
-  const [updateMetadata] = useMetadataUpdate({});
-  const [updatePrivateMetadata] = usePrivateMetadataUpdate({});
+  const [updateMetadata] = useUpdateMetadataMutation({});
+  const [updatePrivateMetadata] = useUpdatePrivateMetadataMutation({});
 
   const [
     updateChannels,
     updateChannelsOpts
-  ] = useProductVariantChannelListingUpdate({});
+  ] = useProductVariantChannelListingUpdateMutation({});
 
   const [openModal] = createDialogActionHandlers<
     ProductVariantEditUrlDialog,
@@ -156,7 +152,7 @@ export const ProductVariant: React.FC<ProductUpdateProps> = ({
 
   const handleSubmitChannels = async (
     data: ProductVariantUpdateSubmitData,
-    variant: ProductVariantDetails_productVariant
+    variant: ProductVariantFragment
   ) => {
     const channelsHaveChanged = data.channelListings.some(channel => {
       const variantChannel = variant.channelListings.find(
@@ -180,26 +176,26 @@ export const ProductVariant: React.FC<ProductUpdateProps> = ({
     });
 
     if (channelsHaveChanged) {
-      await updateChannels({
-        variables: {
-          id: variant.id,
-          input: data.channelListings.map(listing => ({
-            channelId: listing.id,
-            costPrice: listing.value.costPrice || null,
-            price: listing.value.price,
-            preorderThreshold: listing.value.preorderThreshold
-          }))
-        }
-      });
+      return extractMutationErrors(
+        updateChannels({
+          variables: {
+            id: variant.id,
+            input: data.channelListings.map(listing => ({
+              channelId: listing.id,
+              costPrice: listing.value.costPrice || null,
+              price: listing.value.price,
+              preorderThreshold: listing.value.preorderThreshold
+            }))
+          }
+        })
+      );
     }
+
+    return [];
   };
 
   const variant = data?.productVariant;
   const channels = createVariantChannels(variant);
-
-  if (variant === null) {
-    return <NotFoundPage onBack={handleBack} />;
-  }
 
   const [
     deactivatePreorder,
@@ -278,6 +274,7 @@ export const ProductVariant: React.FC<ProductUpdateProps> = ({
         id: variantId,
         removeStocks: data.removeStocks,
         sku: data.sku,
+        quantityLimitPerCustomer: Number(data.quantityLimitPerCustomer) || null,
         stocks: data.updateStocks.map(mapFormsetStockToStockInput),
         trackInventory: data.trackInventory,
         preorder: data.isPreorder
@@ -359,6 +356,10 @@ export const ProductVariant: React.FC<ProductUpdateProps> = ({
   const attributeValues =
     mapEdgesToItems(searchAttributeValuesOpts?.data?.attribute.choices) || [];
 
+  if (variant === null) {
+    return <NotFoundPage onBack={handleBack} />;
+  }
+
   return (
     <>
       <WindowTitle title={data?.productVariant?.name} />
@@ -384,8 +385,10 @@ export const ProductVariant: React.FC<ProductUpdateProps> = ({
         onDelete={() => openModal("remove")}
         onMediaSelect={handleMediaSelect}
         onSubmit={async data => {
-          await handleSubmit(data);
-          await handleSubmitChannels(data, variant);
+          const errors = await handleSubmit(data);
+          const channelErrors = await handleSubmitChannels(data, variant);
+
+          return [...errors, ...channelErrors];
         }}
         onWarehouseConfigure={() => navigate(warehouseAddPath)}
         onVariantClick={variantId => {

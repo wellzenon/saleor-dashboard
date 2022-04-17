@@ -1,19 +1,20 @@
 import { ChannelCollectionData } from "@saleor/channels/utils";
 import { CardSpacer } from "@saleor/components/CardSpacer";
 import ChannelsAvailabilityCard from "@saleor/components/ChannelsAvailabilityCard";
-import { ConfirmButtonTransitionState } from "@saleor/components/ConfirmButton";
 import { Container } from "@saleor/components/Container";
 import Grid from "@saleor/components/Grid";
 import Metadata from "@saleor/components/Metadata";
 import PageHeader from "@saleor/components/PageHeader";
 import Savebar from "@saleor/components/Savebar";
 import SeoForm from "@saleor/components/SeoForm";
-import { CollectionChannelListingErrorFragment } from "@saleor/fragments/types/CollectionChannelListingErrorFragment";
-import { CollectionErrorFragment } from "@saleor/fragments/types/CollectionErrorFragment";
+import {
+  CollectionChannelListingErrorFragment,
+  CollectionErrorFragment,
+  PermissionEnum
+} from "@saleor/graphql";
 import { SubmitPromise } from "@saleor/hooks/useForm";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
-import { PermissionEnum } from "@saleor/types/globalTypes";
+import { Backlink, ConfirmButtonTransitionState } from "@saleor/macaw-ui";
 import React from "react";
 import { useIntl } from "react-intl";
 
@@ -53,8 +54,9 @@ const CollectionCreatePage: React.FC<CollectionCreatePageProps> = ({
       onSubmit={onSubmit}
       currentChannels={currentChannels}
       setChannels={onChannelsChange}
+      disabled={disabled}
     >
-      {({ change, data, handlers, hasChanged, submit }) => (
+      {({ change, data, handlers, submit, isSaveDisabled }) => (
         <Container>
           <Backlink onClick={onBack}>
             {intl.formatMessage(sectionNames.collections)}
@@ -155,7 +157,7 @@ const CollectionCreatePage: React.FC<CollectionCreatePageProps> = ({
           </Grid>
           <Savebar
             state={saveButtonBarState}
-            disabled={disabled || !hasChanged}
+            disabled={isSaveDisabled}
             onCancel={onBack}
             onSubmit={submit}
           />

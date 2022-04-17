@@ -1,5 +1,4 @@
 import {
-  Button,
   Card,
   CardContent,
   Table,
@@ -14,10 +13,10 @@ import CardTitle from "@saleor/components/CardTitle";
 import Money from "@saleor/components/Money";
 import Skeleton from "@saleor/components/Skeleton";
 import TableCellAvatar from "@saleor/components/TableCellAvatar";
+import { OrderRefundDataQuery } from "@saleor/graphql";
 import { FormsetChange } from "@saleor/hooks/useFormset";
-import { makeStyles } from "@saleor/macaw-ui";
+import { Button, makeStyles } from "@saleor/macaw-ui";
 import { renderCollection } from "@saleor/misc";
-import { OrderRefundData_order_lines } from "@saleor/orders/types/OrderRefundData";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -63,7 +62,7 @@ const useStyles = makeStyles(
 );
 
 interface OrderRefundUnfulfilledProductsProps {
-  unfulfilledLines: OrderRefundData_order_lines[];
+  unfulfilledLines: OrderRefundDataQuery["order"]["lines"];
   data: OrderRefundFormData;
   disabled: boolean;
   onRefundedProductQuantityChange: FormsetChange<string>;
@@ -102,9 +101,8 @@ const OrderRefundUnfulfilledProducts: React.FC<OrderRefundUnfulfilledProductsPro
         </Typography>
         <Button
           className={classes.setMaximalQuantityButton}
-          color="primary"
           onClick={onSetMaximalQuantities}
-          data-test="setMaximalQuantityUnfulfilledButton"
+          data-test-id="set-maximal-quantity-unfulfilled-button"
         >
           <FormattedMessage
             defaultMessage="Set maximal quantities"
@@ -172,8 +170,7 @@ const OrderRefundUnfulfilledProducts: React.FC<OrderRefundUnfulfilledProductsPro
                         type="number"
                         inputProps={{
                           className: classes.quantityInnerInput,
-                          "data-test": "quantityInput",
-                          "data-test-id": line?.id,
+                          "data-test-id": "quantity-input" + line?.id,
                           max: lineQuantity.toString(),
                           min: 0,
                           style: { textAlign: "right" }

@@ -1,7 +1,9 @@
 import { WindowTitle } from "@saleor/components/WindowTitle";
+import { useAppFetchMutation, useAppInstallMutation } from "@saleor/graphql";
 import useLocalStorage from "@saleor/hooks/useLocalStorage";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
+import { extractMutationErrors } from "@saleor/misc";
 import getAppErrorMessage from "@saleor/utils/errors/app";
 import React, { useEffect } from "react";
 import { useIntl } from "react-intl";
@@ -10,14 +12,11 @@ import { RouteComponentProps } from "react-router-dom";
 import AppInstallErrorPage from "../../components/AppInstallErrorPage";
 import AppInstallPage from "../../components/AppInstallPage";
 import {
-  useAppInstallMutation,
-  useAppManifestFetchMutation
-} from "../../mutations";
-import {
   AppInstallUrlQueryParams,
   appsListUrl,
   MANIFEST_ATTR
 } from "../../urls";
+import { messages } from "./messages";
 
 interface InstallAppCreateProps extends RouteComponentProps {
   params: AppInstallUrlQueryParams;
@@ -31,7 +30,7 @@ export const InstallAppCreate: React.FC<InstallAppCreateProps> = ({
   const intl = useIntl();
   const manifestUrl = params[MANIFEST_ATTR];
 
-  const [fetchManifest, fetchManifestOpts] = useAppManifestFetchMutation({
+  const [fetchManifest, fetchManifestOpts] = useAppFetchMutation({
     onCompleted: data => {
       if (data.appFetchManifest.errors.length) {
         data.appFetchManifest.errors.forEach(error => {
@@ -67,15 +66,19 @@ export const InstallAppCreate: React.FC<InstallAppCreateProps> = ({
 
   const handleSubmit = () => {
     const manifest = fetchManifestOpts?.data?.appFetchManifest?.manifest;
-    installApp({
-      variables: {
-        input: {
-          appName: manifest?.name,
-          manifestUrl,
-          permissions: manifest?.permissions.map(permission => permission.code)
+    return extractMutationErrors(
+      installApp({
+        variables: {
+          input: {
+            appName: manifest?.name,
+            manifestUrl,
+            permissions: manifest?.permissions.map(
+              permission => permission.code
+            )
+          }
         }
-      }
-    });
+      })
+    );
   };
 
   useEffect(() => {
@@ -88,12 +91,7 @@ export const InstallAppCreate: React.FC<InstallAppCreateProps> = ({
 
   return (
     <>
-      <WindowTitle
-        title={intl.formatMessage({
-          defaultMessage: "Install App",
-          description: "window title"
-        })}
-      />
+      <WindowTitle title={intl.formatMessage(messages.installApp)} />
       {!!fetchManifestOpts.data?.appFetchManifest?.errors?.length ||
       !!fetchManifestOpts.error ? (
         <AppInstallErrorPage onBack={() => navigate("/")} />

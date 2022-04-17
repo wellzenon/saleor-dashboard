@@ -5,13 +5,20 @@ import customerIcon from "@assets/images/menu-customers-icon.svg";
 import discountsIcon from "@assets/images/menu-discounts-icon.svg";
 import homeIcon from "@assets/images/menu-home-icon.svg";
 import ordersIcon from "@assets/images/menu-orders-icon.svg";
+import pagesIcon from "@assets/images/menu-pages-icon.svg";
 import translationIcon from "@assets/images/menu-translation-icon.svg";
+import {
+  extensionMountPoints,
+  useExtensions
+} from "@saleor/apps/useExtensions";
 import { configurationMenuUrl } from "@saleor/configuration";
 import { getConfigMenuItemsPermissions } from "@saleor/configuration/utils";
-import { User } from "@saleor/fragments/types/User";
 import { giftCardListUrl } from "@saleor/giftCards/urls";
+import { PermissionEnum, UserFragment } from "@saleor/graphql";
+import useNavigator from "@saleor/hooks/useNavigator";
 import { commonMessages, sectionNames } from "@saleor/intl";
 import { SidebarMenuItem } from "@saleor/macaw-ui";
+import { pageListPath } from "@saleor/pages/urls";
 import { IntlShape } from "react-intl";
 
 import { appsListPath } from "../../apps/urls";
@@ -22,14 +29,35 @@ import { saleListUrl, voucherListUrl } from "../../discounts/urls";
 import { orderDraftListUrl, orderListUrl } from "../../orders/urls";
 import { productListUrl } from "../../products/urls";
 import { languageListUrl } from "../../translations/urls";
-import { PermissionEnum } from "../../types/globalTypes";
+import { getMenuItemExtension, mapToExtensionsItems } from "./utils";
 
-interface FilterableMenuItem extends Omit<SidebarMenuItem, "children"> {
+export interface FilterableMenuItem extends Omit<SidebarMenuItem, "children"> {
   children?: FilterableMenuItem[];
   permissions?: PermissionEnum[];
 }
 
-function createMenuStructure(intl: IntlShape, user: User): SidebarMenuItem[] {
+function useMenuStructure(
+  intl: IntlShape,
+  user: UserFragment
+): [SidebarMenuItem[], (menuItem: SidebarMenuItem) => void] {
+  const navigate = useNavigator();
+  const extensions = useExtensions(extensionMountPoints.NAVIGATION_SIDEBAR);
+
+  const handleMenuItemClick = (menuItem: SidebarMenuItem) => {
+    const extension = getMenuItemExtension(extensions, menuItem);
+    if (extension) {
+      extension.open();
+      return;
+    }
+    navigate(menuItem.url, { resetScroll: true });
+  };
+
+  const appExtensionsHeaderItem = {
+    id: "extensions",
+    ariaLabel: "apps",
+    label: intl.formatMessage(sectionNames.appExtensions)
+  };
+
   const menuItems: FilterableMenuItem[] = [
     {
       ariaLabel: "home",
@@ -68,7 +96,11 @@ function createMenuStructure(intl: IntlShape, user: User): SidebarMenuItem[] {
           id: "giftCards",
           url: giftCardListUrl(),
           permissions: [PermissionEnum.MANAGE_GIFT_CARD]
-        }
+        },
+        ...mapToExtensionsItems(
+          extensions.NAVIGATION_CATALOG,
+          appExtensionsHeaderItem
+        )
       ],
       iconSrc: catalogIcon,
       label: intl.formatMessage(commonMessages.catalog),
@@ -92,9 +124,13 @@ function createMenuStructure(intl: IntlShape, user: User): SidebarMenuItem[] {
           ariaLabel: "order drafts",
           label: intl.formatMessage(commonMessages.drafts),
           permissions: [PermissionEnum.MANAGE_ORDERS],
-          id: "order drafts",
+          id: "order-drafts",
           url: orderDraftListUrl()
-        }
+        },
+        ...mapToExtensionsItems(
+          extensions.NAVIGATION_ORDERS,
+          appExtensionsHeaderItem
+        )
       ],
       iconSrc: ordersIcon,
       label: intl.formatMessage(sectionNames.orders),
@@ -103,6 +139,19 @@ function createMenuStructure(intl: IntlShape, user: User): SidebarMenuItem[] {
     },
     {
       ariaLabel: "customers",
+      children: extensions.NAVIGATION_CUSTOMERS.length > 0 && [
+        {
+          ariaLabel: "customers",
+          label: intl.formatMessage(sectionNames.customers),
+          permissions: [PermissionEnum.MANAGE_USERS],
+          id: "customers",
+          url: customerListUrl()
+        },
+        ...mapToExtensionsItems(
+          extensions.NAVIGATION_CUSTOMERS,
+          appExtensionsHeaderItem
+        )
+      ],
       iconSrc: customerIcon,
       label: intl.formatMessage(sectionNames.customers),
       permissions: [PermissionEnum.MANAGE_USERS],
@@ -124,12 +173,37 @@ function createMenuStructure(intl: IntlShape, user: User): SidebarMenuItem[] {
           label: intl.formatMessage(sectionNames.vouchers),
           id: "vouchers",
           url: voucherListUrl()
-        }
+        },
+        ...mapToExtensionsItems(
+          extensions.NAVIGATION_DISCOUNTS,
+          appExtensionsHeaderItem
+        )
       ],
       iconSrc: discountsIcon,
       label: intl.formatMessage(commonMessages.discounts),
       permissions: [PermissionEnum.MANAGE_DISCOUNTS],
       id: "discounts"
+    },
+    {
+      ariaLabel: "pages",
+      children: extensions.NAVIGATION_PAGES.length > 0 && [
+        {
+          ariaLabel: "pages",
+          label: intl.formatMessage(sectionNames.pages),
+          permissions: [PermissionEnum.MANAGE_PAGES],
+          id: "pages",
+          url: pageListPath
+        },
+        ...mapToExtensionsItems(
+          extensions.NAVIGATION_PAGES,
+          appExtensionsHeaderItem
+        )
+      ],
+      iconSrc: pagesIcon,
+      label: intl.formatMessage(sectionNames.pages),
+      permissions: [PermissionEnum.MANAGE_PAGES],
+      id: "pages",
+      url: pageListPath
     },
     {
       ariaLabel: "apps",
@@ -141,6 +215,19 @@ function createMenuStructure(intl: IntlShape, user: User): SidebarMenuItem[] {
     },
     {
       ariaLabel: "translations",
+      children: extensions.NAVIGATION_TRANSLATIONS.length > 0 && [
+        {
+          ariaLabel: "translations",
+          label: intl.formatMessage(sectionNames.translations),
+          permissions: [PermissionEnum.MANAGE_TRANSLATIONS],
+          id: "translations",
+          url: languageListUrl
+        },
+        ...mapToExtensionsItems(
+          extensions.NAVIGATION_TRANSLATIONS,
+          appExtensionsHeaderItem
+        )
+      ],
       iconSrc: translationIcon,
       label: intl.formatMessage(sectionNames.translations),
       permissions: [PermissionEnum.MANAGE_TRANSLATIONS],
@@ -157,31 +244,38 @@ function createMenuStructure(intl: IntlShape, user: User): SidebarMenuItem[] {
     }
   ];
 
-  const isMenuItemPermitted = (menuItem: FilterableMenuItem) =>
-    !menuItem.permissions ||
-    (user?.userPermissions || []).some(permission =>
-      menuItem.permissions.includes(permission.code)
+  const isMenuItemPermitted = (menuItem: FilterableMenuItem) => {
+    const userPermissions = (user?.userPermissions || []).map(
+      permission => permission.code
     );
+    if (!menuItem?.permissions) {
+      return true;
+    }
+    return menuItem.permissions.some(permission =>
+      userPermissions.includes(permission)
+    );
+  };
 
   const getFilteredMenuItems = (menuItems: FilterableMenuItem[]) =>
     menuItems.filter(isMenuItemPermitted);
 
-  return menuItems.reduce(
-    (resultItems: FilterableMenuItem[], menuItem: FilterableMenuItem) => {
-      const { children } = menuItem;
+  return [
+    menuItems.reduce(
+      (resultItems: FilterableMenuItem[], menuItem: FilterableMenuItem) => {
+        if (!isMenuItemPermitted(menuItem)) {
+          return resultItems;
+        }
+        const { children } = menuItem;
+        const filteredChildren = children
+          ? getFilteredMenuItems(children)
+          : undefined;
 
-      if (!isMenuItemPermitted(menuItem)) {
-        return resultItems;
-      }
-
-      const filteredChildren = children
-        ? getFilteredMenuItems(children)
-        : undefined;
-
-      return [...resultItems, { ...menuItem, children: filteredChildren }];
-    },
-    [] as FilterableMenuItem[]
-  );
+        return [...resultItems, { ...menuItem, children: filteredChildren }];
+      },
+      [] as FilterableMenuItem[]
+    ),
+    handleMenuItemClick
+  ];
 }
 
-export default createMenuStructure;
+export default useMenuStructure;

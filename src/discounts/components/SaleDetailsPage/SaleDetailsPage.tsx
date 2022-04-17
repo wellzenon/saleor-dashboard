@@ -1,32 +1,31 @@
-import { ChannelSaleData } from "@saleor/channels/utils";
+import { ChannelSaleData, validateSalePrice } from "@saleor/channels/utils";
 import CardSpacer from "@saleor/components/CardSpacer";
 import ChannelsAvailabilityCard from "@saleor/components/ChannelsAvailabilityCard";
-import { ConfirmButtonTransitionState } from "@saleor/components/ConfirmButton";
 import Container from "@saleor/components/Container";
-import Form from "@saleor/components/Form";
+import Form, { FormDataWithOpts } from "@saleor/components/Form";
 import Grid from "@saleor/components/Grid";
 import Metadata, { MetadataFormData } from "@saleor/components/Metadata";
 import PageHeader from "@saleor/components/PageHeader";
 import Savebar from "@saleor/components/Savebar";
 import { Tab, TabContainer } from "@saleor/components/Tab";
 import { createSaleChannelsChangeHandler } from "@saleor/discounts/handlers";
-import { DiscountErrorFragment } from "@saleor/fragments/types/DiscountErrorFragment";
+import { SALE_UPDATE_FORM_ID } from "@saleor/discounts/views/SaleDetails/types";
+import {
+  DiscountErrorFragment,
+  PermissionEnum,
+  SaleDetailsFragment,
+  SaleType as SaleTypeEnum
+} from "@saleor/graphql";
+import { SubmitPromise } from "@saleor/hooks/useForm";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
-import { validatePrice } from "@saleor/products/utils/validation";
-import { mapEdgesToItems } from "@saleor/utils/maps";
-import { mapMetadataItemToInput } from "@saleor/utils/maps";
+import { Backlink, ConfirmButtonTransitionState } from "@saleor/macaw-ui";
+import { mapEdgesToItems, mapMetadataItemToInput } from "@saleor/utils/maps";
 import useMetadataChangeTrigger from "@saleor/utils/metadata/useMetadataChangeTrigger";
 import React from "react";
 import { useIntl } from "react-intl";
 
 import { maybe, splitDateTime } from "../../../misc";
 import { ChannelProps, ListProps, TabListActions } from "../../../types";
-import {
-  PermissionEnum,
-  SaleType as SaleTypeEnum
-} from "../../../types/globalTypes";
-import { SaleDetails_sale } from "../../types/SaleDetails";
 import DiscountCategories from "../DiscountCategories";
 import DiscountCollections from "../DiscountCollections";
 import DiscountDates from "../DiscountDates";
@@ -37,8 +36,12 @@ import SaleSummary from "../SaleSummary";
 import SaleType from "../SaleType";
 import SaleValue from "../SaleValue";
 
+export interface ChannelSaleFormData extends ChannelSaleData {
+  percentageValue: string;
+  fixedValue: string;
+}
 export interface SaleDetailsPageFormData extends MetadataFormData {
-  channelListings: ChannelSaleData[];
+  channelListings: ChannelSaleFormData[];
   endDate: string;
   endTime: string;
   hasEndDate: boolean;
@@ -55,16 +58,6 @@ export enum SaleDetailsPageTab {
   variants = "variants"
 }
 
-export function saleDetailsPageTab(tab: string): SaleDetailsPageTab {
-  return tab === SaleDetailsPageTab.products
-    ? SaleDetailsPageTab.products
-    : tab === SaleDetailsPageTab.collections
-    ? SaleDetailsPageTab.collections
-    : tab === SaleDetailsPageTab.categories
-    ? SaleDetailsPageTab.categories
-    : SaleDetailsPageTab.variants;
-}
-
 export interface SaleDetailsPageProps
   extends Pick<ListProps, Exclude<keyof ListProps, "onRowClick">>,
     TabListActions<
@@ -76,9 +69,9 @@ export interface SaleDetailsPageProps
     ChannelProps {
   activeTab: SaleDetailsPageTab;
   errors: DiscountErrorFragment[];
-  sale: SaleDetails_sale;
+  sale: SaleDetailsFragment;
   allChannelsCount: number;
-  channelListings: ChannelSaleData[];
+  channelListings: ChannelSaleFormData[];
   hasChannelChanged: boolean;
   saveButtonBarState: ConfirmButtonTransitionState;
   onBack: () => void;
@@ -95,9 +88,9 @@ export interface SaleDetailsPageProps
   onVariantUnassign: (id: string) => void;
   onVariantClick: (productId: string, variantId: string) => () => void;
   onRemove: () => void;
-  onSubmit: (data: SaleDetailsPageFormData) => void;
+  onSubmit: (data: SaleDetailsPageFormData) => SubmitPromise<any[]>;
   onTabClick: (index: SaleDetailsPageTab) => void;
-  onChannelsChange: (data: ChannelSaleData[]) => void;
+  onChannelsChange: (data: ChannelSaleFormData[]) => void;
   openChannelsModal: () => void;
 }
 
@@ -163,16 +156,28 @@ const SaleDetailsPage: React.FC<SaleDetailsPageProps> = ({
     metadata: sale?.metadata.map(mapMetadataItemToInput),
     privateMetadata: sale?.privateMetadata.map(mapMetadataItemToInput)
   };
+
+  const checkIfSaveIsDisabled = (
+    data: FormDataWithOpts<SaleDetailsPageFormData>
+  ) =>
+    data.channelListings?.some(channel => validateSalePrice(data, channel)) ||
+    disabled ||
+    (!data.hasChanged && !hasChannelChanged);
+
   return (
-    <Form initial={initialForm} onSubmit={onSubmit}>
-      {({ change, data, hasChanged, submit, triggerChange }) => {
+    <Form
+      confirmLeave
+      initial={initialForm}
+      onSubmit={onSubmit}
+      formId={SALE_UPDATE_FORM_ID}
+      checkIfSaveIsDisabled={checkIfSaveIsDisabled}
+    >
+      {({ change, data, submit, triggerChange, isSaveDisabled }) => {
         const handleChannelChange = createSaleChannelsChangeHandler(
           data.channelListings,
           onChannelsChange,
-          triggerChange
-        );
-        const formDisabled = data.channelListings?.some(channel =>
-          validatePrice(channel.discountValue)
+          triggerChange,
+          data.type
         );
         const changeMetadata = makeMetadataChangeHandler(change);
 
@@ -181,7 +186,7 @@ const SaleDetailsPage: React.FC<SaleDetailsPageProps> = ({
             <Backlink onClick={onBack}>
               {intl.formatMessage(sectionNames.sales)}
             </Backlink>
-            <PageHeader title={maybe(() => sale.name)} />
+            <PageHeader title={sale?.name} />
             <Grid>
               <div>
                 <SaleInfo
@@ -319,7 +324,6 @@ const SaleDetailsPage: React.FC<SaleDetailsPageProps> = ({
                     onRowClick={onProductClick}
                     pageInfo={pageInfo}
                     products={mapEdgesToItems(sale?.products)}
-                    channelsCount={allChannelsCount}
                     isChecked={isChecked}
                     selected={selected}
                     toggle={toggle}
@@ -372,9 +376,7 @@ const SaleDetailsPage: React.FC<SaleDetailsPageProps> = ({
               <Metadata data={data} onChange={changeMetadata} />
             </Grid>
             <Savebar
-              disabled={
-                disabled || formDisabled || (!hasChanged && !hasChannelChanged)
-              }
+              disabled={isSaveDisabled}
               onCancel={onBack}
               onDelete={onRemove}
               onSubmit={submit}

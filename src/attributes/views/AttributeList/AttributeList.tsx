@@ -1,5 +1,3 @@
-import { IconButton } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
 import {
   deleteFilterTab,
   getActiveFilters,
@@ -14,11 +12,16 @@ import SaveFilterTabDialog, {
   SaveFilterTabDialogFormData
 } from "@saleor/components/SaveFilterTabDialog";
 import { configurationMenuUrl } from "@saleor/configuration";
+import {
+  useAttributeBulkDeleteMutation,
+  useAttributeListQuery
+} from "@saleor/graphql";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
 import usePaginator, {
   createPaginationState
 } from "@saleor/hooks/usePaginator";
+import { DeleteIcon, IconButton } from "@saleor/macaw-ui";
 import createDialogActionHandlers from "@saleor/utils/handlers/dialogActionHandlers";
 import createFilterHandlers from "@saleor/utils/handlers/filterHandlers";
 import createSortHandler from "@saleor/utils/handlers/sortHandler";
@@ -32,8 +35,6 @@ import useBulkActions from "../../../hooks/useBulkActions";
 import { maybe } from "../../../misc";
 import AttributeBulkDeleteDialog from "../../components/AttributeBulkDeleteDialog";
 import AttributeListPage from "../../components/AttributeListPage";
-import { useAttributeBulkDeleteMutation } from "../../mutations";
-import { useAttributeListQuery } from "../../queries";
 import {
   attributeAddUrl,
   attributeListUrl,
@@ -169,6 +170,7 @@ const AttributeList: React.FC<AttributeListProps> = ({ params }) => {
         toggleAll={toggleAll}
         toolbar={
           <IconButton
+            variant="secondary"
             color="primary"
             onClick={() =>
               openModal("remove", {

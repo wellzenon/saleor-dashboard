@@ -1,11 +1,16 @@
-import { AttributeErrorFragment } from "@saleor/fragments/types/AttributeErrorFragment";
+import {
+  AttributeErrorCode,
+  AttributeErrorFragment,
+  useAttributeCreateMutation,
+  useUpdateMetadataMutation,
+  useUpdatePrivateMetadataMutation
+} from "@saleor/graphql";
 import useListSettings from "@saleor/hooks/useListSettings";
 import useLocalPageInfo, { getMaxPage } from "@saleor/hooks/useLocalPageInfo";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
-import { getStringOrPlaceholder } from "@saleor/misc";
+import { getMutationErrors, getStringOrPlaceholder } from "@saleor/misc";
 import { ListViews, ReorderEvent } from "@saleor/types";
-import { AttributeErrorCode } from "@saleor/types/globalTypes";
 import createDialogActionHandlers from "@saleor/utils/handlers/dialogActionHandlers";
 import createMetadataCreateHandler from "@saleor/utils/handlers/metadataCreateHandler";
 import {
@@ -15,10 +20,6 @@ import {
   remove,
   updateAtIndex
 } from "@saleor/utils/lists";
-import {
-  useMetadataUpdate,
-  usePrivateMetadataUpdate
-} from "@saleor/utils/metadata/updateMetadata";
 import React from "react";
 import { useIntl } from "react-intl";
 import slugify from "slugify";
@@ -28,7 +29,6 @@ import AttributePage, {
 } from "../../components/AttributePage";
 import AttributeValueDeleteDialog from "../../components/AttributeValueDeleteDialog";
 import AttributeValueEditDialog from "../../components/AttributeValueEditDialog";
-import { useAttributeCreateMutation } from "../../mutations";
 import {
   attributeAddUrl,
   AttributeAddUrlDialog,
@@ -48,7 +48,8 @@ interface AttributeDetailsProps {
 const attributeValueAlreadyExistsError: AttributeErrorFragment = {
   __typename: "AttributeError",
   code: AttributeErrorCode.ALREADY_EXISTS,
-  field: "name"
+  field: "name",
+  message: ""
 };
 
 function areValuesEqual(
@@ -95,8 +96,8 @@ const AttributeDetails: React.FC<AttributeDetailsProps> = ({ params }) => {
       }
     }
   });
-  const [updateMetadata] = useMetadataUpdate({});
-  const [updatePrivateMetadata] = usePrivateMetadataUpdate({});
+  const [updateMetadata] = useUpdateMetadataMutation({});
+  const [updatePrivateMetadata] = useUpdatePrivateMetadataMutation({});
 
   const id = params.id
     ? parseInt(params.id, 0) + pageInfo.startCursor
@@ -154,16 +155,18 @@ const AttributeDetails: React.FC<AttributeDetailsProps> = ({ params }) => {
     );
 
   const handleCreate = async (data: AttributePageFormData) => {
-    const input = getAttributeData(data, values);
-
     const result = await attributeCreate({
       variables: {
-        input
+        input: getAttributeData(data, values)
       }
     });
 
-    return result.data.attributeCreate?.attribute?.id || null;
+    return {
+      id: result.data.attributeCreate?.attribute?.id || null,
+      errors: getMutationErrors(result)
+    };
   };
+
   const handleSubmit = createMetadataCreateHandler(
     handleCreate,
     updateMetadata,

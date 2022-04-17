@@ -1,5 +1,4 @@
 import {
-  Button,
   Card,
   CardContent,
   FormControlLabel,
@@ -11,10 +10,12 @@ import CardSpacer from "@saleor/components/CardSpacer";
 import CardTitle from "@saleor/components/CardTitle";
 import ControlledCheckbox from "@saleor/components/ControlledCheckbox";
 import Hr from "@saleor/components/Hr";
-import { OrderErrorFragment } from "@saleor/fragments/types/OrderErrorFragment";
-import { makeStyles } from "@saleor/macaw-ui";
-import { OrderDetails_order } from "@saleor/orders/types/OrderDetails";
-import { OrderRefundData_order } from "@saleor/orders/types/OrderRefundData";
+import {
+  OrderDetailsFragment,
+  OrderErrorFragment,
+  OrderRefundDataQuery
+} from "@saleor/graphql";
+import { Button, makeStyles } from "@saleor/macaw-ui";
 import React from "react";
 import { defineMessages, FormattedMessage, useIntl } from "react-intl";
 
@@ -31,6 +32,9 @@ import RefundAmountInput from "./RefundAmountInput";
 
 const useStyles = makeStyles(
   theme => ({
+    content: {
+      paddingTop: theme.spacing(1.5)
+    },
     hr: {
       margin: theme.spacing(1, 0)
     },
@@ -79,7 +83,7 @@ const messages = defineMessages({
 
 interface OrderRefundAmountProps {
   data: OrderRefundFormData | OrderReturnFormData;
-  order: OrderRefundData_order | OrderDetails_order;
+  order: OrderRefundDataQuery["order"] | OrderDetailsFragment;
   disabled: boolean;
   disableSubmitButton?: boolean;
   isReturn?: boolean;
@@ -166,7 +170,7 @@ const OrderRefundAmount: React.FC<OrderRefundAmountProps> = props => {
           description: "section header"
         })}
       />
-      <CardContent>
+      <CardContent className={classes.content}>
         {type === OrderRefundType.PRODUCTS && (
           <RadioGroup
             value={data.amountCalculationMode}
@@ -295,14 +299,12 @@ const OrderRefundAmount: React.FC<OrderRefundAmountProps> = props => {
           </>
         )}
         <Button
-          color="primary"
-          variant="contained"
+          variant="primary"
           fullWidth
-          size="large"
           onClick={onRefund}
           className={classes.refundButton}
           disabled={disableRefundButton}
-          data-test="submit"
+          data-test-id="submit"
         >
           {!disableRefundButton && !isReturn ? (
             <FormattedMessage

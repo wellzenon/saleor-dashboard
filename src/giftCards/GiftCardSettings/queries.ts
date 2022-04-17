@@ -1,18 +1,9 @@
-import { fragmentGiftCardsSettings } from "@saleor/fragments/giftCards";
-import makeQuery from "@saleor/hooks/makeQuery";
-import gql from "graphql-tag";
-
-import { GiftCardSettings } from "./types/GiftCardSettings";
+import { gql } from "@apollo/client";
 
 export const giftCardSettings = gql`
-  ${fragmentGiftCardsSettings}
   query GiftCardSettings {
     giftCardSettings {
-      ...GiftCardsSettingsFragment
+      ...GiftCardsSettings
     }
   }
 `;
-
-export const useGiftCardSettingsQuery = makeQuery<GiftCardSettings, never>(
-  giftCardSettings
-);

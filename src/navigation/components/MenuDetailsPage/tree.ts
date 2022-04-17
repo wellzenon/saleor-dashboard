@@ -1,7 +1,11 @@
-import { MenuDetails_menu_items } from "../../types/MenuDetails";
+import { MenuDetailsFragment } from "@saleor/graphql";
+
 import { TreeOperation } from "../MenuItems";
 
-export function findNode(tree: MenuDetails_menu_items[], id: string): number[] {
+export function findNode(
+  tree: MenuDetailsFragment["items"],
+  id: string
+): number[] {
   const foundNodeIndex = tree.findIndex(node => node.id === id);
   if (tree.length === 0) {
     return [null];
@@ -17,9 +21,9 @@ export function findNode(tree: MenuDetails_menu_items[], id: string): number[] {
 }
 
 export function getNode(
-  tree: MenuDetails_menu_items[],
+  tree: MenuDetailsFragment["items"],
   path: number[]
-): MenuDetails_menu_items {
+): MenuDetailsFragment["items"][0] {
   if (path.length === 1) {
     return tree[path[0]];
   }
@@ -27,9 +31,9 @@ export function getNode(
 }
 
 function removeNode(
-  tree: MenuDetails_menu_items[],
+  tree: MenuDetailsFragment["items"],
   path: number[]
-): MenuDetails_menu_items[] {
+): MenuDetailsFragment["items"] {
   const removeIndex = path[0];
 
   if (path.length === 1) {
@@ -45,31 +49,38 @@ function removeNode(
   return newTree;
 }
 
-function insertNode(
-  tree: MenuDetails_menu_items[],
-  path: number[],
-  node: MenuDetails_menu_items,
-  position: number
-): MenuDetails_menu_items[] {
+interface InsertNodeInput {
+  tree: MenuDetailsFragment["items"];
+  path: number[];
+  node: MenuDetailsFragment["items"][0];
+  position: number;
+}
+
+function insertNode({
+  tree,
+  path,
+  node,
+  position
+}: InsertNodeInput): MenuDetailsFragment["items"] {
   if (path.length === 0) {
     return [...tree.slice(0, position), node, ...tree.slice(position)];
   }
 
   if (path[0] in tree) {
-    tree[path[0]].children = insertNode(
-      tree[path[0]].children,
-      path.slice(1),
+    tree[path[0]].children = insertNode({
+      tree: tree[path[0]].children,
+      path: path.slice(1),
       node,
       position
-    );
+    });
   }
   return tree;
 }
 
 function removeNodeAndChildren(
-  tree: MenuDetails_menu_items[],
+  tree: MenuDetailsFragment["items"],
   operation: TreeOperation
-): MenuDetails_menu_items[] {
+): MenuDetailsFragment["items"] {
   const sourcePath = findNode(tree, operation.id);
   const node = getNode(tree, sourcePath);
 
@@ -89,45 +100,48 @@ function removeNodeAndChildren(
   return removeNode(tree, sourcePath);
 }
 
-function permuteNode(
-  tree: MenuDetails_menu_items[],
+function permuteRelativeNode(
+  tree: MenuDetailsFragment["items"],
   permutation: TreeOperation
-): MenuDetails_menu_items[] {
+): MenuDetailsFragment["items"] {
   const sourcePath = findNode(tree, permutation.id);
   const node = getNode(tree, sourcePath);
 
+  const hasParent = !!permutation.parentId;
+
   const treeAfterRemoval = removeNode(tree, sourcePath);
 
-  const targetPath = permutation.parentId
+  const targetPath = hasParent
     ? findNode(treeAfterRemoval, permutation.parentId)
     : [];
 
-  const treeAfterInsertion = insertNode(
-    treeAfterRemoval,
-    targetPath,
+  const position = sourcePath[sourcePath.length - 1];
+
+  const treeAfterInsertion = insertNode({
+    tree: treeAfterRemoval,
+    path: targetPath,
     node,
-    permutation.sortOrder
-  );
+    position: position + permutation.sortOrder
+  });
 
   return treeAfterInsertion;
 }
 
-function executeOperation(
-  tree: MenuDetails_menu_items[],
+function executeRelativeOperation(
+  tree: MenuDetailsFragment["items"],
   operation: TreeOperation
-): MenuDetails_menu_items[] {
+): MenuDetailsFragment["items"] {
   return operation.type === "move"
-    ? permuteNode(tree, operation)
+    ? permuteRelativeNode(tree, operation)
     : removeNodeAndChildren(tree, operation);
 }
 
-export function computeTree(
-  tree: MenuDetails_menu_items[],
+export function computeRelativeTree(
+  tree: MenuDetailsFragment["items"],
   operations: TreeOperation[]
 ) {
   const newTree = operations.reduce(
-    (acc, operation) => executeOperation(acc, operation),
-    // FIXME: 😡
+    (acc, operation) => executeRelativeOperation(acc, operation),
     JSON.parse(JSON.stringify(tree))
   );
   return newTree;

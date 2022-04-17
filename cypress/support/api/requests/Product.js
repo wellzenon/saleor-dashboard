@@ -1,6 +1,7 @@
 import { stringify } from "../.././formatData/formatJson";
+import { returnValueDependsOnShopVersion } from "../../formatData/dataDependingOnVersion";
 import {
-  getValuesInArray,
+  getDataForDescriptionInVariables,
   getValueWithDefault,
   getVariantsListIds
 } from "./utils/Utils";
@@ -105,27 +106,28 @@ export function createProduct({
     `collections:["${collectionId}"]`
   );
   const category = getValueWithDefault(categoryId, `category:"${categoryId}"`);
-  const descriptionLine = getValueWithDefault(
-    description,
-    `description:"{\\"blocks\\":[{\\"type\\":\\"paragraph\\",\\"data\\":{\\"text\\":\\"${description}\\"}}]}"`
-  );
+  const descriptionData = getDataForDescriptionInVariables(description);
   const attributeValuesLine = getValueWithDefault(
     attributeValue,
     `values:["${attributeValue}"]`
   );
-  const mutation = `mutation{
+  const attributes = getValueWithDefault(
+    attributeId,
+    `attributes:[{
+      id:"${attributeId}"
+      ${attributeValuesLine}
+    }]`
+  );
+  const mutation = `mutation createProduct${descriptionData.mutationVariables}{
     productCreate(input:{
-      attributes:[{
-        id:"${attributeId}"
-        ${attributeValuesLine}
-      }]
+      ${attributes}
       name:"${name}"
       slug:"${name}"
       seo:{title:"${name}" description:""}
       productType:"${productTypeId}"
       ${category}
       ${collection}
-      ${descriptionLine}
+      ${descriptionData.descriptionLine}
     }){
       product{
         id
@@ -138,7 +140,7 @@ export function createProduct({
     }
   }`;
   return cy
-    .sendRequestWithQuery(mutation)
+    .sendRequestWithQuery(mutation, "auth", descriptionData.variables, true)
     .its("body.data.productCreate.product");
 }
 
@@ -146,7 +148,7 @@ export function createVariant({
   productId,
   sku,
   warehouseId,
-  quantityInWarehouse,
+  quantityInWarehouse = 1,
   channelId,
   attributeId,
   price = 1,
@@ -154,8 +156,12 @@ export function createVariant({
   trackInventory = true,
   weight = 1,
   attributeName = "value",
-  attributeValues = ["value"]
+  preorder
 }) {
+  const preorderLines = getValueWithDefault(
+    preorder,
+    `preorder:${stringify(preorder)}`
+  );
   const skuLines = getValueWithDefault(sku, `sku: "${sku}"`);
 
   const attributeLines = getValueWithDefault(
@@ -186,6 +192,7 @@ export function createVariant({
 
   const mutation = `mutation{
     productVariantBulkCreate(product: "${productId}", variants: {
+      ${preorderLines}
       ${attributeLines}
       weight: ${weight}
       ${skuLines}
@@ -197,7 +204,7 @@ export function createVariant({
         id
         name
       }
-      bulkProductErrors{
+      errors{
         field
         message
       }
@@ -240,12 +247,36 @@ export function getVariants(variantsList) {
   return cy.sendRequestWithQuery(query).its("body.data.productVariants");
 }
 
-export function getVariant(id, channel, auth = "auth") {
+export function getVariant(id, channelSlug, auth = "auth") {
+  const preorder = returnValueDependsOnShopVersion(
+    "3.1",
+    `preorder{
+    globalThreshold
+    globalSoldUnits
+    endDate
+  }`
+  );
+
   const query = `query{
-    productVariant(id:"${id}" channel:"${channel}"){
+    productVariant(id:"${id}" channel:"${channelSlug}"){
       id
       name
+      stocks{
+        warehouse{
+          id
+        }
+        quantityAllocated
+      }
+      ${preorder}
       sku
+      attributes{
+        attribute{
+          inputType
+        }
+        values{
+          name
+        }
+      }
       pricing{
         onSale
         discount{
@@ -267,4 +298,62 @@ export function getVariant(id, channel, auth = "auth") {
     }
   }`;
   return cy.sendRequestWithQuery(query, auth).its("body.data.productVariant");
+}
+
+export function deactivatePreorderOnVariant(variantId) {
+  const mutation = `mutation{
+    productVariantPreorderDeactivate(id:"${variantId}"){
+      errors{
+        field
+        message
+      }
+    }
+  }`;
+  return cy
+    .sendRequestWithQuery(mutation)
+    .its("body.data.productVariantPreorderDeactivate");
+}
+
+export function activatePreorderOnVariant({
+  variantId,
+  threshold = 50,
+  endDate
+}) {
+  const thresholdLine = getValueWithDefault(
+    threshold,
+    `globalThreshold:${threshold}`
+  );
+  const endDateLine = getValueWithDefault(endDate, `endDate:${endDate}`);
+  const mutation = `mutation{
+    productVariantUpdate(id:"${variantId}", input:{
+      preorder:{
+        ${thresholdLine}
+        ${endDateLine}
+      }
+    }){
+      errors{
+        field
+        message
+      }
+    }
+  }`;
+  return cy.sendRequestWithQuery(mutation);
+}
+
+export function updateVariantPrice({ variantId, channelId, price }) {
+  const mutation = `mutation {
+    productVariantChannelListingUpdate(id:"${variantId}", input:{
+      channelId:"${channelId}"
+      price:${price}
+      costPrice:${price}
+    }){
+      errors{
+        field
+        message
+      }
+    }
+  }`;
+  return cy
+    .sendRequestWithQuery(mutation)
+    .its("body.data.productVariantChannelListingUpdate");
 }

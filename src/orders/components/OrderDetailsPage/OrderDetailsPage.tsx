@@ -1,7 +1,6 @@
 import { Typography } from "@material-ui/core";
 import CardMenu from "@saleor/components/CardMenu";
 import { CardSpacer } from "@saleor/components/CardSpacer";
-import { ConfirmButtonTransitionState } from "@saleor/components/ConfirmButton";
 import { Container } from "@saleor/components/Container";
 import { DateTime } from "@saleor/components/Date";
 import Form from "@saleor/components/Form";
@@ -10,23 +9,25 @@ import Metadata, { MetadataFormData } from "@saleor/components/Metadata";
 import PageHeader from "@saleor/components/PageHeader";
 import Savebar from "@saleor/components/Savebar";
 import Skeleton from "@saleor/components/Skeleton";
+import {
+  OrderDetailsFragment,
+  OrderDetailsQuery,
+  OrderStatus
+} from "@saleor/graphql";
 import { SubmitPromise } from "@saleor/hooks/useForm";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
-import { makeStyles } from "@saleor/macaw-ui";
+import {
+  Backlink,
+  ConfirmButtonTransitionState,
+  makeStyles
+} from "@saleor/macaw-ui";
 import OrderChannelSectionCard from "@saleor/orders/components/OrderChannelSectionCard";
-import { UserPermissionProps } from "@saleor/types";
 import { mapMetadataItemToInput } from "@saleor/utils/maps";
 import useMetadataChangeTrigger from "@saleor/utils/metadata/useMetadataChangeTrigger";
 import React from "react";
 import { defineMessages, useIntl } from "react-intl";
 
-import { maybe } from "../../../misc";
-import { OrderStatus } from "../../../types/globalTypes";
-import {
-  OrderDetails_order,
-  OrderDetails_shop
-} from "../../types/OrderDetails";
+import { getMutationErrors, maybe } from "../../../misc";
 import OrderCustomer from "../OrderCustomer";
 import OrderCustomerNote from "../OrderCustomerNote";
 import OrderDraftDetails from "../OrderDraftDetails/OrderDraftDetails";
@@ -55,9 +56,9 @@ const useStyles = makeStyles(
   }
 );
 
-export interface OrderDetailsPageProps extends UserPermissionProps {
-  order: OrderDetails_order;
-  shop: OrderDetails_shop;
+export interface OrderDetailsPageProps {
+  order: OrderDetailsFragment;
+  shop: OrderDetailsQuery["shop"];
   shippingMethods?: Array<{
     id: string;
     name: string;
@@ -114,7 +115,6 @@ const OrderDetailsPage: React.FC<OrderDetailsPageProps> = props => {
     order,
     shop,
     saveButtonBarState,
-    userPermissions,
     onBack,
     onBillingAddressEdit,
     onFulfillmentApprove,
@@ -172,7 +172,7 @@ const OrderDetailsPage: React.FC<OrderDetailsPageProps> = props => {
       privateMetadata
     });
     resetMetadataChanged();
-    return result;
+    return getMutationErrors(result);
   };
 
   const initial: MetadataFormData = {
@@ -211,7 +211,7 @@ const OrderDetailsPage: React.FC<OrderDetailsPageProps> = props => {
   ]);
 
   return (
-    <Form initial={initial} onSubmit={handleSubmit}>
+    <Form confirmLeave initial={initial} onSubmit={handleSubmit}>
       {({ change, data, hasChanged, submit }) => {
         const changeMetadata = makeMetadataChangeHandler(change);
 
@@ -224,9 +224,8 @@ const OrderDetailsPage: React.FC<OrderDetailsPageProps> = props => {
               className={classes.header}
               inline
               title={<Title order={order} />}
-            >
-              <CardMenu menuItems={selectCardMenuItems} />
-            </PageHeader>
+              cardMenu={<CardMenu outlined menuItems={selectCardMenuItems} />}
+            />
             <div className={classes.date}>
               {order && order.created ? (
                 <Typography variant="body2">
@@ -237,7 +236,7 @@ const OrderDetailsPage: React.FC<OrderDetailsPageProps> = props => {
               )}
             </div>
             <Grid>
-              <div data-test-id="orderFulfillment">
+              <div data-test-id="order-fulfillment">
                 {!isOrderUnconfirmed ? (
                   <OrderUnfulfilledProductsCard
                     showFulfillmentAction={canFulfill}
@@ -300,7 +299,6 @@ const OrderDetailsPage: React.FC<OrderDetailsPageProps> = props => {
                   canEditAddresses={canEditAddresses}
                   canEditCustomer={false}
                   order={order}
-                  userPermissions={userPermissions}
                   onBillingAddressEdit={onBillingAddressEdit}
                   onShippingAddressEdit={onShippingAddressEdit}
                   onProfileView={onProfileView}

@@ -1,5 +1,4 @@
 import {
-  Button,
   Card,
   CardContent,
   Hidden,
@@ -13,7 +12,6 @@ import LimitReachedAlert from "@saleor/components/LimitReachedAlert";
 import LinkChoice from "@saleor/components/LinkChoice";
 import Money from "@saleor/components/Money";
 import ResponsiveTable from "@saleor/components/ResponsiveTable";
-import { RefreshLimits_shop_limits } from "@saleor/components/Shop/types/RefreshLimits";
 import { SingleAutocompleteChoiceType } from "@saleor/components/SingleAutocompleteSelectField";
 import Skeleton from "@saleor/components/Skeleton";
 import {
@@ -21,22 +19,24 @@ import {
   SortableTableRow
 } from "@saleor/components/SortableTable";
 import TableHead from "@saleor/components/TableHead";
-import { makeStyles } from "@saleor/macaw-ui";
+import {
+  ProductDetailsVariantFragment,
+  ProductFragment,
+  RefreshLimitsQuery
+} from "@saleor/graphql";
+import { Button, makeStyles } from "@saleor/macaw-ui";
 import { isLimitReached } from "@saleor/utils/limits";
 import React from "react";
 import { FormattedMessage, IntlShape, useIntl } from "react-intl";
 
 import { maybe, renderCollection } from "../../../misc";
 import { ChannelProps, ListActions, ReorderAction } from "../../../types";
-import {
-  ProductDetails_product,
-  ProductDetails_product_variants,
-  ProductDetails_product_variants_stocks_warehouse
-} from "../../types/ProductDetails";
 import ProductVariantSetDefault from "../ProductVariantSetDefault";
 
+type Warehouse = ProductDetailsVariantFragment[][0]["stocks"][0]["warehouse"];
+
 function getWarehouseChoices(
-  variants: ProductDetails_product_variants[],
+  variants: ProductDetailsVariantFragment[],
   intl: IntlShape
 ): SingleAutocompleteChoiceType[] {
   return [
@@ -48,12 +48,10 @@ function getWarehouseChoices(
       value: null
     },
     ...variants
-      .reduce<ProductDetails_product_variants_stocks_warehouse[]>(
+      .reduce<Warehouse[]>(
         (warehouses, variant) => [
           ...warehouses,
-          ...variant.stocks.reduce<
-            ProductDetails_product_variants_stocks_warehouse[]
-          >((variantStocks, stock) => {
+          ...variant.stocks.reduce<Warehouse[]>((variantStocks, stock) => {
             if (!!warehouses.find(w => w.id === stock.warehouse.id)) {
               return variantStocks;
             }
@@ -74,7 +72,7 @@ const useStyles = makeStyles(
   theme => ({
     [theme.breakpoints.up("lg")]: {
       colActions: {
-        width: 70
+        width: 80
       },
       colInventory: {
         width: 200
@@ -134,7 +132,7 @@ const useStyles = makeStyles(
 function getAvailabilityLabel(
   intl: IntlShape,
   warehouse: string,
-  variant: ProductDetails_product_variants,
+  variant: ProductDetailsVariantFragment[][0],
   numAvailable: number
 ): string {
   if (variant.preorder) {
@@ -207,12 +205,12 @@ function getAvailabilityLabel(
 
 interface ProductVariantsProps extends ListActions, ChannelProps {
   disabled: boolean;
-  limits: RefreshLimits_shop_limits;
-  product: ProductDetails_product;
-  variants: ProductDetails_product_variants[];
+  limits: RefreshLimitsQuery["shop"]["limits"];
+  product: ProductFragment;
+  variants: ProductDetailsVariantFragment[];
   onVariantReorder: ReorderAction;
   onRowClick: (id: string) => () => void;
-  onSetDefaultVariant(variant: ProductDetails_product_variants);
+  onSetDefaultVariant(variant: ProductDetailsVariantFragment[][0]);
   onVariantAdd?();
   onVariantsAdd?();
 }
@@ -256,9 +254,8 @@ export const ProductVariants: React.FC<ProductVariantsProps> = props => {
             <Button
               disabled={limitReached}
               onClick={onVariantAdd}
-              variant="text"
-              color="primary"
-              data-test="button-add-variant"
+              variant="tertiary"
+              data-test-id="button-add-variant"
             >
               <FormattedMessage
                 defaultMessage="Create variant"
@@ -269,9 +266,8 @@ export const ProductVariants: React.FC<ProductVariantsProps> = props => {
             <Button
               disabled={limitReached}
               onClick={onVariantsAdd}
-              variant="text"
-              color="primary"
-              data-test="button-add-variants"
+              variant="tertiary"
+              data-test-id="button-add-variants"
             >
               <FormattedMessage
                 defaultMessage="Create variants"
@@ -396,7 +392,7 @@ export const ProductVariants: React.FC<ProductVariantsProps> = props => {
                       onChange={() => toggle(variant.id)}
                     />
                   </TableCell>
-                  <TableCell className={classes.colName} data-test="name">
+                  <TableCell className={classes.colName} data-test-id="name">
                     {variant ? variant.name || variant.sku : <Skeleton />}
                     {isDefault && (
                       <span className={classes.defaultVariant}>
@@ -407,11 +403,14 @@ export const ProductVariants: React.FC<ProductVariantsProps> = props => {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className={classes.colSku} data-test="sku">
+                  <TableCell className={classes.colSku} data-test-id="sku">
                     {variant ? variant.sku : <Skeleton />}
                   </TableCell>
                   <Hidden smDown>
-                    <TableCell className={classes.colPrice} data-test="price">
+                    <TableCell
+                      className={classes.colPrice}
+                      data-test-id="price"
+                    >
                       {variant ? (
                         <Money money={channel?.price} />
                       ) : (
@@ -421,7 +420,7 @@ export const ProductVariants: React.FC<ProductVariantsProps> = props => {
                   </Hidden>
                   <TableCell
                     className={classes.colInventory}
-                    data-test="inventory"
+                    data-test-id="inventory"
                   >
                     {numAvailable === null ? (
                       <Skeleton />
@@ -436,7 +435,7 @@ export const ProductVariants: React.FC<ProductVariantsProps> = props => {
                   </TableCell>
                   <TableCell
                     className={classes.colActions}
-                    data-test="actions"
+                    data-test-id="actions"
                     onClick={e => e.stopPropagation()}
                   >
                     {variant?.id !== product?.defaultVariant?.id && (

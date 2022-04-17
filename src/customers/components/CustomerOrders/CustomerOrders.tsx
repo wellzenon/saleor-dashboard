@@ -1,5 +1,4 @@
 import {
-  Button,
   Card,
   TableBody,
   TableCell,
@@ -11,13 +10,13 @@ import { DateTime } from "@saleor/components/Date";
 import Money from "@saleor/components/Money";
 import ResponsiveTable from "@saleor/components/ResponsiveTable";
 import Skeleton from "@saleor/components/Skeleton";
-import StatusLabel from "@saleor/components/StatusLabel";
-import { makeStyles } from "@saleor/macaw-ui";
+import { CustomerDetailsQuery } from "@saleor/graphql";
+import { Button, makeStyles, Pill } from "@saleor/macaw-ui";
+import { RelayToFlat } from "@saleor/types";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { maybe, renderCollection, transformPaymentStatus } from "../../../misc";
-import { CustomerDetails_user_orders_edges_node } from "../../types/CustomerDetails";
 
 const useStyles = makeStyles(
   {
@@ -32,7 +31,7 @@ const useStyles = makeStyles(
 );
 
 export interface CustomerOrdersProps {
-  orders: CustomerDetails_user_orders_edges_node[];
+  orders: RelayToFlat<CustomerDetailsQuery["user"]["orders"]>;
   onViewAllOrdersClick: () => void;
   onRowClick: (id: string) => void;
 }
@@ -57,7 +56,7 @@ const CustomerOrders: React.FC<CustomerOrdersProps> = props => {
           description: "section header"
         })}
         toolbar={
-          <Button variant="text" color="primary" onClick={onViewAllOrdersClick}>
+          <Button variant="tertiary" onClick={onViewAllOrdersClick}>
             <FormattedMessage
               defaultMessage="View all orders"
               description="button"
@@ -121,8 +120,8 @@ const CustomerOrders: React.FC<CustomerOrdersProps> = props => {
                 <TableCell>
                   {maybe(() => order.paymentStatus.status) !== undefined ? (
                     order.paymentStatus.status === null ? null : (
-                      <StatusLabel
-                        status={order.paymentStatus.status}
+                      <Pill
+                        color={order.paymentStatus.status}
                         label={order.paymentStatus.localized}
                       />
                     )
@@ -130,7 +129,7 @@ const CustomerOrders: React.FC<CustomerOrdersProps> = props => {
                     <Skeleton />
                   )}
                 </TableCell>
-                <TableCell className={classes.textRight}>
+                <TableCell className={classes.textRight} align="right">
                   {maybe(() => order.total.gross) ? (
                     <Money money={order.total.gross} />
                   ) : (

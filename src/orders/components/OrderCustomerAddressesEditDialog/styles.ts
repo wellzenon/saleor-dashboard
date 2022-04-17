@@ -1,14 +1,17 @@
 import { makeStyles } from "@saleor/macaw-ui";
 
 export const useStyles = makeStyles(
-  {
-    scrollableContent: {
+  theme => ({
+    dialogContent: {
       maxHeight: `calc(100vh - 250px)`,
-      overflow: "scroll"
+      overflowY: "scroll",
+      overflowX: "hidden",
+      padding: "24px",
+      margin: 0
     },
     scrollableWrapper: {
       maxHeight: 400,
-      overflow: "scroll"
+      overflowY: "scroll"
     },
     container: {
       display: "block"
@@ -16,9 +19,10 @@ export const useStyles = makeStyles(
     optionLabel: {
       display: "block"
     },
-    overflow: {
-      overflowY: "visible"
+    searchInput: {
+      paddingTop: theme.spacing(2),
+      paddingBottom: theme.spacing(2)
     }
-  },
+  }),
   { name: "OrderCustomerAddressesEditDialog" }
 );

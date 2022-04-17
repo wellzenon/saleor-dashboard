@@ -1,10 +1,10 @@
 import { AttributePageFormData } from "@saleor/attributes/components/AttributePage";
 import ControlledCheckbox from "@saleor/components/ControlledCheckbox";
 import SingleSelectField from "@saleor/components/SingleSelectField";
+import { MeasurementUnitsEnum } from "@saleor/graphql";
 import { UseFormResult } from "@saleor/hooks/useForm";
 import { commonMessages } from "@saleor/intl";
 import { makeStyles } from "@saleor/macaw-ui";
-import { MeasurementUnitsEnum } from "@saleor/types/globalTypes";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -128,7 +128,7 @@ export const NumericUnits: React.FC<NumericUnitsProps> = ({
     <div>
       <div className={classes.hr} />
       <ControlledCheckbox
-        data-test="numeric-with-unit"
+        data-test-id="numeric-with-unit"
         name="selectUnit"
         label={formatMessage(M.messages.selectUnit)}
         checked={data.unit !== null}

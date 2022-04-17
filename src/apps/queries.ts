@@ -1,14 +1,6 @@
-import { appFragment } from "@saleor/fragments/apps";
-import { webhooksFragment } from "@saleor/fragments/webhooks";
-import makeQuery from "@saleor/hooks/makeQuery";
-import gql from "graphql-tag";
+import { gql } from "@apollo/client";
 
-import { App, AppVariables } from "./types/App";
-import { AppsInstallations } from "./types/AppsInstallations";
-import { AppsList, AppsListVariables } from "./types/AppsList";
-import { ExtensionList, ExtensionListVariables } from "./types/ExtensionList";
-
-const appsList = gql`
+export const appsList = gql`
   query AppsList(
     $before: String
     $after: String
@@ -44,7 +36,7 @@ const appsList = gql`
   }
 `;
 
-const appsInProgressList = gql`
+export const appsInProgressList = gql`
   query AppsInstallations {
     appsInstallations {
       status
@@ -56,12 +48,10 @@ const appsInProgressList = gql`
   }
 `;
 
-const appDetails = gql`
-  ${appFragment}
-  ${webhooksFragment}
+export const appDetails = gql`
   query App($id: ID!) {
     app(id: $id) {
-      ...AppFragment
+      ...App
       aboutApp
       permissions {
         code
@@ -75,33 +65,26 @@ const appDetails = gql`
 
 export const extensionList = gql`
   query ExtensionList($filter: AppExtensionFilterInput!) {
-    appExtensions(filter: $filter, first: 20) {
+    appExtensions(filter: $filter, first: 100) {
       edges {
         node {
           id
           label
           url
-          view
-          type
+          mount
           target
           accessToken
+          permissions {
+            code
+          }
+          app {
+            id
+            appUrl
+          }
         }
       }
     }
   }
 `;
 
-export const useAppsListQuery = makeQuery<AppsList, AppsListVariables>(
-  appsList
-);
-
-export const useAppsInProgressListQuery = makeQuery<AppsInstallations, {}>(
-  appsInProgressList
-);
-
-export const useAppDetails = makeQuery<App, AppVariables>(appDetails);
-
-export const useExtensionList = makeQuery<
-  ExtensionList,
-  ExtensionListVariables
->(extensionList);
+export const EXTENSION_LIST_QUERY = "ExtensionList";

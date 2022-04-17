@@ -1,24 +1,25 @@
 import { ChannelCollectionData } from "@saleor/channels/utils";
 import { CardSpacer } from "@saleor/components/CardSpacer";
 import ChannelsAvailabilityCard from "@saleor/components/ChannelsAvailabilityCard";
-import { ConfirmButtonTransitionState } from "@saleor/components/ConfirmButton";
 import { Container } from "@saleor/components/Container";
 import Grid from "@saleor/components/Grid";
 import Metadata from "@saleor/components/Metadata/Metadata";
 import PageHeader from "@saleor/components/PageHeader";
 import Savebar from "@saleor/components/Savebar";
 import SeoForm from "@saleor/components/SeoForm";
-import { CollectionChannelListingErrorFragment } from "@saleor/fragments/types/CollectionChannelListingErrorFragment";
-import { CollectionErrorFragment } from "@saleor/fragments/types/CollectionErrorFragment";
+import {
+  CollectionChannelListingErrorFragment,
+  CollectionDetailsQuery,
+  CollectionErrorFragment,
+  PermissionEnum
+} from "@saleor/graphql";
 import { SubmitPromise } from "@saleor/hooks/useForm";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
-import { PermissionEnum } from "@saleor/types/globalTypes";
+import { Backlink, ConfirmButtonTransitionState } from "@saleor/macaw-ui";
 import React from "react";
 import { useIntl } from "react-intl";
 
 import { ChannelProps, ListActions, PageListProps } from "../../../types";
-import { CollectionDetails_collection } from "../../types/CollectionDetails";
 import CollectionDetails from "../CollectionDetails/CollectionDetails";
 import { CollectionImage } from "../CollectionImage/CollectionImage";
 import CollectionProducts from "../CollectionProducts/CollectionProducts";
@@ -30,7 +31,7 @@ export interface CollectionDetailsPageProps
     ChannelProps {
   channelsCount: number;
   channelsErrors: CollectionChannelListingErrorFragment[];
-  collection: CollectionDetails_collection;
+  collection: CollectionDetailsQuery["collection"];
   currentChannels: ChannelCollectionData[];
   errors: CollectionErrorFragment[];
   hasChannelChanged: boolean;
@@ -72,8 +73,10 @@ const CollectionDetailsPage: React.FC<CollectionDetailsPageProps> = ({
       currentChannels={currentChannels}
       setChannels={onChannelsChange}
       onSubmit={onSubmit}
+      disabled={disabled}
+      hasChannelChanged={hasChannelChanged}
     >
-      {({ change, data, handlers, hasChanged, submit }) => (
+      {({ change, data, handlers, submit, isSaveDisabled }) => (
         <Container>
           <Backlink onClick={onBack}>
             {intl.formatMessage(sectionNames.collections)}
@@ -101,7 +104,6 @@ const CollectionDetailsPage: React.FC<CollectionDetailsPageProps> = ({
               <CardSpacer />
               <CollectionProducts
                 disabled={disabled}
-                channelsCount={channelsCount}
                 collection={collection}
                 {...collectionProductsProps}
               />
@@ -150,7 +152,7 @@ const CollectionDetailsPage: React.FC<CollectionDetailsPageProps> = ({
           </Grid>
           <Savebar
             state={saveButtonBarState}
-            disabled={disabled || (!hasChanged && !hasChannelChanged)}
+            disabled={isSaveDisabled}
             onCancel={onBack}
             onDelete={onCollectionRemove}
             onSubmit={submit}

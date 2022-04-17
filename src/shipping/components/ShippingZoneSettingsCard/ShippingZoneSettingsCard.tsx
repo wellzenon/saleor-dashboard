@@ -1,12 +1,12 @@
 import { Card, CardContent, Divider } from "@material-ui/core";
-import { BaseChannels_channels } from "@saleor/channels/types/BaseChannels";
 import CardTitle from "@saleor/components/CardTitle";
 import { MultiAutocompleteChoiceType } from "@saleor/components/MultiAutocompleteSelectField";
+import { ChannelFragment } from "@saleor/graphql";
 import { FormChange } from "@saleor/hooks/useForm";
 import React from "react";
 import { defineMessages, useIntl } from "react-intl";
 
-import { FormData } from "../../components/ShippingZoneDetailsPage/types";
+import { ShippingZoneUpdateFormData } from "../../components/ShippingZoneDetailsPage/types";
 import ChannelsSection from "./ChannelsSection";
 import WarehousesSection from "./WarehousesSection";
 
@@ -18,7 +18,7 @@ const messages = defineMessages({
 });
 
 export interface ShippingZoneSettingsCardProps {
-  formData: FormData;
+  formData: ShippingZoneUpdateFormData;
   warehousesDisplayValues: MultiAutocompleteChoiceType[];
   warehousesChoices: MultiAutocompleteChoiceType[];
   onWarehouseAdd: () => void;
@@ -28,7 +28,7 @@ export interface ShippingZoneSettingsCardProps {
   onWarehousesSearchChange: (query: string) => void;
   channelsDisplayValues: MultiAutocompleteChoiceType[];
   onChannelChange: FormChange;
-  allChannels?: BaseChannels_channels[];
+  allChannels?: ChannelFragment[];
   loading: boolean;
 }
 

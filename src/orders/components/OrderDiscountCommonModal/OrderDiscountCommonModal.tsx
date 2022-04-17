@@ -8,15 +8,13 @@ import {
 import { PopperPlacementType } from "@material-ui/core/Popper";
 import DialogButtons from "@saleor/components/ActionDialog/DialogButtons";
 import CardSpacer from "@saleor/components/CardSpacer";
-import ConfirmButton, {
-  ConfirmButtonTransitionState
-} from "@saleor/components/ConfirmButton";
+import ConfirmButton from "@saleor/components/ConfirmButton";
 import PriceField from "@saleor/components/PriceField";
 import RadioGroupField from "@saleor/components/RadioGroupField";
-import { Money } from "@saleor/fragments/types/Money";
+import { DiscountValueTypeEnum, MoneyFragment } from "@saleor/graphql";
+import { useUpdateEffect } from "@saleor/hooks/useUpdateEffect";
 import { buttonMessages } from "@saleor/intl";
-import { makeStyles } from "@saleor/macaw-ui";
-import { DiscountValueTypeEnum } from "@saleor/types/globalTypes";
+import { ConfirmButtonTransitionState, makeStyles } from "@saleor/macaw-ui";
 import React, {
   ChangeEvent,
   MutableRefObject,
@@ -24,8 +22,7 @@ import React, {
   useRef,
   useState
 } from "react";
-import { useIntl } from "react-intl";
-import { defineMessages } from "react-intl";
+import { defineMessages, useIntl } from "react-intl";
 
 import ModalTitle from "./ModalTitle";
 import {
@@ -106,7 +103,7 @@ const messages = defineMessages({
 });
 
 export interface OrderDiscountCommonModalProps {
-  maxPrice: Money;
+  maxPrice: MoneyFragment;
   onConfirm: (discount: OrderDiscountCommonInput) => void;
   onClose: () => void;
   onRemove: () => void;
@@ -258,7 +255,7 @@ const OrderDiscountCommonModal: React.FC<OrderDiscountCommonModalProps> = ({
     setValue(recalculatedValue);
   };
 
-  useEffect(handleValueConversion, [calculationMode]);
+  useUpdateEffect(handleValueConversion, [calculationMode]);
 
   const dialogTitle =
     modalType === ORDER_LINE_DISCOUNT
@@ -321,9 +318,8 @@ const OrderDiscountCommonModal: React.FC<OrderDiscountCommonModalProps> = ({
           {existingDiscount && (
             <div className={classes.buttonWrapper}>
               <ConfirmButton
-                data-test="button-remove"
+                data-test-id="button-remove"
                 onClick={onRemove}
-                variant="contained"
                 className={classes.removeButton}
                 transitionState={removeStatus}
               >

@@ -1,18 +1,23 @@
-import { Button } from "@material-ui/core";
 import AccountPermissions from "@saleor/components/AccountPermissions";
 import CardSpacer from "@saleor/components/CardSpacer";
-import { ConfirmButtonTransitionState } from "@saleor/components/ConfirmButton";
 import Container from "@saleor/components/Container";
 import Form from "@saleor/components/Form";
 import Grid from "@saleor/components/Grid";
 import PageHeader from "@saleor/components/PageHeader";
 import Savebar from "@saleor/components/Savebar";
-import { ShopInfo_shop_permissions } from "@saleor/components/Shop/types/ShopInfo";
-import { AppErrorFragment } from "@saleor/fragments/types/AppErrorFragment";
+import {
+  AppErrorFragment,
+  AppUpdateMutation,
+  PermissionEnum,
+  ShopInfoQuery
+} from "@saleor/graphql";
 import { SubmitPromise } from "@saleor/hooks/useForm";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
-import { PermissionEnum } from "@saleor/types/globalTypes";
+import {
+  Backlink,
+  Button,
+  ConfirmButtonTransitionState
+} from "@saleor/macaw-ui";
 import { getFormErrors } from "@saleor/utils/errors";
 import getAppErrorMessage from "@saleor/utils/errors/app";
 import WebhooksList from "@saleor/webhooks/components/WebhooksList";
@@ -21,7 +26,6 @@ import { FormattedMessage, useIntl } from "react-intl";
 
 import activateIcon from "../../../../assets/images/activate-icon.svg";
 import { useStyles } from "../../styles";
-import { AppUpdate_appUpdate_app } from "../../types/AppUpdate";
 import CustomAppDefaultToken from "../CustomAppDefaultToken";
 import CustomAppInformation from "../CustomAppInformation";
 import CustomAppTokens from "../CustomAppTokens";
@@ -36,16 +40,18 @@ export interface CustomAppDetailsPageProps {
   apiUri: string;
   disabled: boolean;
   errors: AppErrorFragment[];
-  permissions: ShopInfo_shop_permissions[];
+  permissions: ShopInfoQuery["shop"]["permissions"];
   saveButtonBarState: ConfirmButtonTransitionState;
-  app: AppUpdate_appUpdate_app;
+  app: AppUpdateMutation["appUpdate"]["app"];
   token: string;
   onApiUriClick: () => void;
   onBack: () => void;
   onTokenDelete: (id: string) => void;
   onTokenClose: () => void;
   onTokenCreate: () => void;
-  onSubmit: (data: CustomAppDetailsPageFormData) => SubmitPromise;
+  onSubmit: (
+    data: CustomAppDetailsPageFormData
+  ) => SubmitPromise<AppErrorFragment[]>;
   onWebhookCreate: () => void;
   onWebhookRemove: (id: string) => void;
   navigateToWebhookDetails: (id: string) => () => void;
@@ -95,16 +101,20 @@ const CustomAppDetailsPage: React.FC<CustomAppDetailsPageProps> = props => {
   };
 
   return (
-    <Form initial={initialForm} onSubmit={onSubmit} confirmLeave>
-      {({ data, change, hasChanged, submit }) => (
+    <Form
+      confirmLeave
+      initial={initialForm}
+      onSubmit={onSubmit}
+      disabled={disabled}
+    >
+      {({ data, change, submit, isSaveDisabled }) => (
         <Container>
           <Backlink onClick={onBack}>
             {intl.formatMessage(sectionNames.apps)}
           </Backlink>
           <PageHeader title={app?.name}>
             <Button
-              variant="text"
-              color="primary"
+              variant="secondary"
               className={classes.activateButton}
               disableFocusRipple
               onClick={data.isActive ? onAppDeactivateOpen : onAppActivateOpen}
@@ -177,7 +187,7 @@ const CustomAppDetailsPage: React.FC<CustomAppDetailsPageProps> = props => {
             </div>
           </Grid>
           <Savebar
-            disabled={disabled || !hasChanged}
+            disabled={isSaveDisabled}
             state={saveButtonBarState}
             onCancel={onBack}
             onSubmit={submit}

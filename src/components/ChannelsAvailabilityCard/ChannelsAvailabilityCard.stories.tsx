@@ -1,18 +1,16 @@
 import { createChannelsDataFromProduct } from "@saleor/channels/utils";
-import { User } from "@saleor/fragments/types/User";
+import { PermissionEnum, UserFragment } from "@saleor/graphql";
 import { product } from "@saleor/products/fixtures";
 import Decorator from "@saleor/storybook/Decorator";
 import UserDecorator from "@saleor/storybook/UserDecorator";
-import { PermissionEnum } from "@saleor/types/globalTypes";
 import { storiesOf } from "@storybook/react";
 import React from "react";
 
 import ChannelsAvailabilityCard, {
   ChannelsAvailabilityCardProps
 } from "./ChannelsAvailabilityCard";
-import { Messages } from "./types";
 
-const user: User = {
+const user: UserFragment = {
   __typename: "User",
   avatar: null,
   email: "email@example.com",
@@ -53,16 +51,16 @@ storiesOf("Generics / Channels availability card", module)
       {...props}
       channelsList={undefined}
       channels={productChannels}
-      messages={productChannels.reduce(
-        (prevVal, currVal) => ({
-          ...prevVal,
-          [currVal.id]: {
-            availableLabel: "Available",
-            availableSecondLabel: "Will become available",
-            hiddenSecondLabel: "Will become published"
-          }
-        }),
-        {} as Messages
-      )}
+      messages={{
+        availableLabel: "Available",
+        availableSecondLabel: "Will become available",
+        unavailableLabel: "Lorem Ipsum",
+        visibleSecondLabel: "Dolor Sit Amet",
+        hiddenSecondLabel: "Will become published",
+        hiddenLabel: "Hidden",
+        visibleLabel: "Visible",
+        availableDateText: "available from 07/30/2020",
+        setAvailabilityDateLabel: "xd4"
+      }}
     />
   ));

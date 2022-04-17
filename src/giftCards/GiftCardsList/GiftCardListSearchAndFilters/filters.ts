@@ -1,7 +1,10 @@
 import { IFilter, IFilterElement } from "@saleor/components/Filter";
-import { SearchCustomers_search_edges_node } from "@saleor/searches/types/SearchCustomers";
-import { SearchProducts_search_edges_node } from "@saleor/searches/types/SearchProducts";
-import { GiftCardFilterInput } from "@saleor/types/globalTypes";
+import {
+  GiftCardFilterInput,
+  SearchCustomersQuery,
+  SearchProductsQuery
+} from "@saleor/graphql";
+import { RelayToFlat } from "@saleor/types";
 import {
   createFilterTabUtils,
   createFilterUtils,
@@ -38,9 +41,9 @@ interface GiftCardFilterOptsProps {
   params: GiftCardListUrlFilters;
   currencies: string[];
   loadingCurrencies: boolean;
-  products: SearchProducts_search_edges_node[];
+  products: RelayToFlat<SearchProductsQuery["search"]>;
   productSearchProps: SearchWithFetchMoreProps;
-  customers: SearchCustomers_search_edges_node[];
+  customers: RelayToFlat<SearchCustomersQuery["search"]>;
   customerSearchProps: SearchWithFetchMoreProps;
   tags: string[];
   tagSearchProps: SearchWithFetchMoreProps;
@@ -62,7 +65,6 @@ export const getFilterOpts = ({
     value: params?.currency,
     choices: mapSingleValueNodeToChoice(currencies),
     displayValues: mapSingleValueNodeToChoice(currencies),
-    initialSearch: "",
     loading: loadingCurrencies
   },
   product: {
@@ -165,7 +167,7 @@ export function getFilterQueryParam(
   }
 }
 
-const messages = defineMessages({
+export const messages = defineMessages({
   balanceAmountLabel: {
     defaultMessage: "Amount",
     description: "amount filter label"
@@ -222,7 +224,8 @@ export function createFilterStructure(
       multiple:
         opts?.initialBalanceAmount?.value?.min !==
         opts?.initialBalanceAmount?.value?.max,
-      active: opts.initialBalanceAmount.active
+      active: opts.initialBalanceAmount.active,
+      dependencies: [GiftCardListFilterKeys.currency]
     },
 
     {
@@ -234,23 +237,16 @@ export function createFilterStructure(
       multiple:
         opts?.currentBalanceAmount?.value?.min !==
         opts?.currentBalanceAmount?.value?.max,
-      active: opts.currentBalanceAmount.active
+      active: opts.currentBalanceAmount.active,
+      dependencies: [GiftCardListFilterKeys.currency]
     },
     {
-      ...createAutocompleteField(
+      ...createOptionsField(
         GiftCardListFilterKeys.currency,
         intl.formatMessage(messages.currencyLabel),
         [opts.currency.value],
-        opts.currency.displayValues,
         false,
-        opts.currency.choices,
-        {
-          hasMore: opts.currency.hasMore,
-          initialSearch: "",
-          loading: opts.currency.loading,
-          onFetchMore: opts.currency.onFetchMore,
-          onSearchChange: opts.currency.onSearchChange
-        }
+        opts.currency.choices
       ),
       active: opts.currency.active
     },

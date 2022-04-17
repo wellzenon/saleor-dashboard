@@ -1,5 +1,4 @@
 import {
-  Button,
   Dialog,
   DialogActions,
   DialogContent,
@@ -7,14 +6,16 @@ import {
   TextField
 } from "@material-ui/core";
 import { getAttributeValueErrorMessage } from "@saleor/attributes/errors";
-import ConfirmButton, {
-  ConfirmButtonTransitionState
-} from "@saleor/components/ConfirmButton";
+import BackButton from "@saleor/components/BackButton";
+import ConfirmButton from "@saleor/components/ConfirmButton";
 import Form from "@saleor/components/Form";
-import { AttributeErrorFragment } from "@saleor/fragments/types/AttributeErrorFragment";
+import {
+  AttributeErrorFragment,
+  AttributeInputTypeEnum
+} from "@saleor/graphql";
 import useModalDialogErrors from "@saleor/hooks/useModalDialogErrors";
 import { buttonMessages } from "@saleor/intl";
-import { AttributeInputTypeEnum } from "@saleor/types/globalTypes";
+import { ConfirmButtonTransitionState } from "@saleor/macaw-ui";
 import { getFormErrors } from "@saleor/utils/errors";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -79,7 +80,7 @@ const AttributeValueEditDialog: React.FC<AttributeValueEditDialogProps> = ({
           <>
             <DialogContent>
               <TextField
-                data-test-id="valueName"
+                data-test-id="value-name"
                 autoFocus
                 disabled={disabled}
                 error={!!formErrors.name}
@@ -107,14 +108,10 @@ const AttributeValueEditDialog: React.FC<AttributeValueEditDialogProps> = ({
               )}
             </DialogContent>
             <DialogActions>
-              <Button onClick={onClose}>
-                <FormattedMessage {...buttonMessages.back} />
-              </Button>
+              <BackButton onClick={onClose} />
               <ConfirmButton
-                data-test="submit"
+                data-test-id="submit"
                 transitionState={confirmButtonState}
-                color="primary"
-                variant="contained"
                 onClick={submit}
               >
                 <FormattedMessage {...buttonMessages.save} />

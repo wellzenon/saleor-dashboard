@@ -1,13 +1,13 @@
+import { MutationFunction } from "@apollo/client";
 import { categoryAddUrl } from "@saleor/categories/urls";
 import { collectionAddUrl } from "@saleor/collections/urls";
 import { customerAddUrl } from "@saleor/customers/urls";
 import { voucherAddUrl } from "@saleor/discounts/urls";
+import { OrderDraftCreateMutation } from "@saleor/graphql";
 import { UseNavigatorResult } from "@saleor/hooks/useNavigator";
-import { OrderDraftCreate } from "@saleor/orders/types/OrderDraftCreate";
 import { permissionGroupAddUrl } from "@saleor/permissionGroups/urls";
 import { productAddUrl } from "@saleor/products/urls";
 import { score } from "fuzzaldrin";
-import { MutationFunction } from "react-apollo";
 import { IntlShape } from "react-intl";
 
 import { QuickSearchActionInput, QuickSearchMode } from "../../types";
@@ -25,7 +25,7 @@ export function searchInCommands(
   search: string,
   intl: IntlShape,
   navigate: UseNavigatorResult,
-  createOrder: MutationFunction<OrderDraftCreate, {}>,
+  createOrder: MutationFunction<OrderDraftCreateMutation, {}>,
   setMode: (mode: QuickSearchMode) => void
 ): QuickSearchActionInput[] {
   const actions: Command[] = [
@@ -100,7 +100,7 @@ function getCommandModeActions(
   query: string,
   intl: IntlShape,
   navigate: UseNavigatorResult,
-  createOrder: MutationFunction<OrderDraftCreate, {}>,
+  createOrder: MutationFunction<OrderDraftCreateMutation, {}>,
   setMode: (mode: QuickSearchMode) => void
 ): QuickSearchActionInput[] {
   return [...searchInCommands(query, intl, navigate, createOrder, setMode)]

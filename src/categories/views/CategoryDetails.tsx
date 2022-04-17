@@ -1,45 +1,43 @@
-import { DialogContentText, IconButton } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
+import { DialogContentText } from "@material-ui/core";
 import ActionDialog from "@saleor/components/ActionDialog";
 import NotFoundPage from "@saleor/components/NotFoundPage";
 import { WindowTitle } from "@saleor/components/WindowTitle";
+import {
+  CategoryBulkDeleteMutation,
+  CategoryDeleteMutation,
+  CategoryInput,
+  CategoryUpdateMutation,
+  useCategoryBulkDeleteMutation,
+  useCategoryDeleteMutation,
+  useCategoryDetailsQuery,
+  useCategoryUpdateMutation,
+  useProductBulkDeleteMutation,
+  useUpdateMetadataMutation,
+  useUpdatePrivateMetadataMutation
+} from "@saleor/graphql";
 import useBulkActions from "@saleor/hooks/useBulkActions";
+import useLocalPaginator, {
+  useSectionLocalPaginationState
+} from "@saleor/hooks/useLocalPaginator";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
-import usePaginator, {
-  createPaginationState
-} from "@saleor/hooks/usePaginator";
 import { commonMessages, errorMessages } from "@saleor/intl";
+import { DeleteIcon, IconButton } from "@saleor/macaw-ui";
 import createDialogActionHandlers from "@saleor/utils/handlers/dialogActionHandlers";
 import createMetadataUpdateHandler from "@saleor/utils/handlers/metadataUpdateHandler";
 import { mapEdgesToItems } from "@saleor/utils/maps";
-import {
-  useMetadataUpdate,
-  usePrivateMetadataUpdate
-} from "@saleor/utils/metadata/updateMetadata";
 import { getParsedDataForJsonStringField } from "@saleor/utils/richText/misc";
-import React from "react";
+import React, { useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { PAGINATE_BY } from "../../config";
-import { maybe } from "../../misc";
-import { useProductBulkDeleteMutation } from "../../products/mutations";
+import { extractMutationErrors, maybe } from "../../misc";
 import { productAddUrl, productUrl } from "../../products/urls";
-import { CategoryInput } from "../../types/globalTypes";
 import {
   CategoryPageTab,
   CategoryUpdatePage
 } from "../components/CategoryUpdatePage/CategoryUpdatePage";
 import { CategoryUpdateData } from "../components/CategoryUpdatePage/form";
-import {
-  useCategoryBulkDeleteMutation,
-  useCategoryDeleteMutation,
-  useCategoryUpdateMutation
-} from "../mutations";
-import { useCategoryDetailsQuery } from "../queries";
-import { CategoryBulkDelete } from "../types/CategoryBulkDelete";
-import { CategoryDelete } from "../types/CategoryDelete";
-import { CategoryUpdate } from "../types/CategoryUpdate";
 import {
   categoryAddUrl,
   categoryListUrl,
@@ -65,15 +63,26 @@ export const CategoryDetails: React.FC<CategoryDetailsProps> = ({
 }) => {
   const navigate = useNavigator();
   const notify = useNotifier();
-  const paginate = usePaginator();
   const { isSelected, listElements, reset, toggle, toggleAll } = useBulkActions(
     params.ids
   );
   const intl = useIntl();
-  const [updateMetadata] = useMetadataUpdate({});
-  const [updatePrivateMetadata] = usePrivateMetadataUpdate({});
+  const [updateMetadata] = useUpdateMetadataMutation({});
+  const [updatePrivateMetadata] = useUpdatePrivateMetadataMutation({});
 
-  const paginationState = createPaginationState(PAGINATE_BY, params);
+  const [activeTab, setActiveTab] = useState<CategoryPageTab>(
+    CategoryPageTab.categories
+  );
+  const [paginationState, setPaginationState] = useSectionLocalPaginationState(
+    PAGINATE_BY,
+    activeTab
+  );
+  const paginate = useLocalPaginator(setPaginationState);
+  const changeTab = (tab: CategoryPageTab) => {
+    reset();
+    setActiveTab(tab);
+  };
+
   const { data, loading, refetch } = useCategoryDetailsQuery({
     displayLoader: true,
     variables: { ...paginationState, id }
@@ -85,7 +94,7 @@ export const CategoryDetails: React.FC<CategoryDetailsProps> = ({
     return <NotFoundPage onBack={() => navigate(categoryListUrl())} />;
   }
 
-  const handleCategoryDelete = (data: CategoryDelete) => {
+  const handleCategoryDelete = (data: CategoryDeleteMutation) => {
     if (data.categoryDelete.errors.length === 0) {
       notify({
         status: "success",
@@ -101,7 +110,7 @@ export const CategoryDetails: React.FC<CategoryDetailsProps> = ({
     onCompleted: handleCategoryDelete
   });
 
-  const handleCategoryUpdate = (data: CategoryUpdate) => {
+  const handleCategoryUpdate = (data: CategoryUpdateMutation) => {
     if (data.categoryUpdate.errors.length > 0) {
       const backgroundImageError = data.categoryUpdate.errors.find(
         error => error.field === ("backgroundImage" as keyof CategoryInput)
@@ -113,6 +122,11 @@ export const CategoryDetails: React.FC<CategoryDetailsProps> = ({
           text: intl.formatMessage(errorMessages.imageUploadErrorText)
         });
       }
+    } else {
+      notify({
+        status: "success",
+        text: intl.formatMessage(commonMessages.savedChanges)
+      });
     }
   };
 
@@ -120,7 +134,7 @@ export const CategoryDetails: React.FC<CategoryDetailsProps> = ({
     onCompleted: handleCategoryUpdate
   });
 
-  const handleBulkCategoryDelete = (data: CategoryBulkDelete) => {
+  const handleBulkCategoryDelete = (data: CategoryBulkDeleteMutation) => {
     if (data.categoryBulkDelete.errors.length === 0) {
       closeModal();
       notify({
@@ -155,47 +169,37 @@ export const CategoryDetails: React.FC<CategoryDetailsProps> = ({
     }
   });
 
-  const changeTab = (tabName: CategoryPageTab) => {
-    reset();
-    navigate(
-      categoryUrl(id, {
-        activeTab: tabName
-      })
-    );
-  };
-
   const [openModal, closeModal] = createDialogActionHandlers<
     CategoryUrlDialog,
     CategoryUrlQueryParams
   >(navigate, params => categoryUrl(id, params), params);
 
   const { loadNextPage, loadPreviousPage, pageInfo } = paginate(
-    params.activeTab === CategoryPageTab.categories
+    activeTab === CategoryPageTab.categories
       ? maybe(() => data.category.children.pageInfo)
       : maybe(() => data.category.products.pageInfo),
-    paginationState,
-    params
+    paginationState
   );
 
-  const handleUpdate = async (formData: CategoryUpdateData) => {
-    const result = await updateCategory({
-      variables: {
-        id,
-        input: {
-          backgroundImageAlt: formData.backgroundImageAlt,
-          description: getParsedDataForJsonStringField(formData.description),
-          name: formData.name,
-          seo: {
-            description: formData.seoDescription,
-            title: formData.seoTitle
-          },
-          slug: formData.slug
+  const handleUpdate = async (formData: CategoryUpdateData) =>
+    extractMutationErrors(
+      updateCategory({
+        variables: {
+          id,
+          input: {
+            backgroundImageAlt: formData.backgroundImageAlt,
+            description: getParsedDataForJsonStringField(formData.description),
+            name: formData.name,
+            seo: {
+              description: formData.seoDescription,
+              title: formData.seoTitle
+            },
+            slug: formData.slug
+          }
         }
-      }
-    });
+      })
+    );
 
-    return result.data.categoryUpdate.errors;
-  };
   const handleSubmit = createMetadataUpdateHandler(
     data?.category,
     handleUpdate,
@@ -208,7 +212,7 @@ export const CategoryDetails: React.FC<CategoryDetailsProps> = ({
       <WindowTitle title={maybe(() => data.category.name)} />
       <CategoryUpdatePage
         changeTab={changeTab}
-        currentTab={params.activeTab}
+        currentTab={activeTab}
         category={maybe(() => data.category)}
         disabled={loading}
         errors={updateResult.data?.categoryUpdate.errors || []}
@@ -251,6 +255,8 @@ export const CategoryDetails: React.FC<CategoryDetailsProps> = ({
         subcategories={mapEdgesToItems(data?.category?.children)}
         subcategoryListToolbar={
           <IconButton
+            data-test-id="delete-icon"
+            variant="secondary"
             color="primary"
             onClick={() =>
               openModal("delete-categories", {
@@ -263,7 +269,7 @@ export const CategoryDetails: React.FC<CategoryDetailsProps> = ({
         }
         productListToolbar={
           <IconButton
-            data-test-id="deleteIcon"
+            data-test-id="delete-icon"
             color="primary"
             onClick={() =>
               openModal("delete-products", {

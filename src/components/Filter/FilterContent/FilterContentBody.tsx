@@ -5,6 +5,7 @@ import { FilterNumericField } from "@saleor/components/Filter/FilterContent/Filt
 import { FilterSingleSelectField } from "@saleor/components/Filter/FilterContent/FilterSingleSelectField";
 import { useCommonStyles } from "@saleor/components/Filter/FilterContent/utils";
 import { MultiAutocompleteChoiceType } from "@saleor/components/MultiAutocompleteSelectField";
+import Skeleton from "@saleor/components/Skeleton";
 import { makeStyles } from "@saleor/macaw-ui";
 import classNames from "classnames";
 import React from "react";
@@ -34,7 +35,7 @@ const useStyles = makeStyles(
   { name: "FilterContentBody" }
 );
 
-const filterTestingContext = "filter-field";
+const filterTestingContext = "filter-field-";
 
 export interface FilterContentBodyProps<T extends string = string> {
   children?: React.ReactNode;
@@ -60,6 +61,10 @@ const FilterContentBody: React.FC<FilterContentBodyProps> = ({
   const classes = useStyles({});
   const commonClasses = useCommonStyles({});
 
+  if (!filter) {
+    return <Skeleton />;
+  }
+
   const isDateField = [FieldType.date, FieldType.dateTime].includes(
     filter.type
   );
@@ -72,8 +77,7 @@ const FilterContentBody: React.FC<FilterContentBodyProps> = ({
       {children}
       {filter.type === FieldType.text && (
         <TextField
-          data-test={filterTestingContext}
-          data-test-id={filter.name}
+          data-test-id={filterTestingContext + filter.name}
           fullWidth
           name={filter.name}
           InputProps={{ classes: { input: commonClasses.input } }}
@@ -119,8 +123,7 @@ const FilterContentBody: React.FC<FilterContentBodyProps> = ({
 
       {filter.type === FieldType.options && (
         <FilterOptionField
-          data-test={filterTestingContext}
-          data-test-id={filter.name}
+          data-test-id={filterTestingContext + filter.name}
           filterField={filter}
           onFilterPropertyChange={onFilterPropertyChange}
         />
@@ -134,7 +137,7 @@ const FilterContentBody: React.FC<FilterContentBodyProps> = ({
             <FormControlLabel
               control={
                 <Radio
-                  data-test="filterBoolean"
+                  data-test-id="filter-boolean"
                   data-test-is-checked={filter.value[0] === option.value}
                   checked={filter.value[0] === option.value}
                   color="primary"
@@ -158,8 +161,7 @@ const FilterContentBody: React.FC<FilterContentBodyProps> = ({
         ))}
       {filter.type === FieldType.autocomplete && (
         <FilterAutocompleteField
-          data-test={filterTestingContext}
-          data-test-id={filter.name}
+          data-test-id={filterTestingContext + filter.name}
           displayValues={autocompleteDisplayValues}
           filterField={filter}
           setDisplayValues={setAutocompleteDisplayValues}

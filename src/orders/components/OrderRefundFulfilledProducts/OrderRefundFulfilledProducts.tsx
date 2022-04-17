@@ -1,5 +1,4 @@
 import {
-  Button,
   Card,
   CardContent,
   Table,
@@ -14,10 +13,10 @@ import CardTitle from "@saleor/components/CardTitle";
 import Money from "@saleor/components/Money";
 import Skeleton from "@saleor/components/Skeleton";
 import TableCellAvatar from "@saleor/components/TableCellAvatar";
+import { OrderRefundDataQuery } from "@saleor/graphql";
 import { FormsetChange } from "@saleor/hooks/useFormset";
-import { makeStyles } from "@saleor/macaw-ui";
+import { Button, makeStyles } from "@saleor/macaw-ui";
 import { renderCollection } from "@saleor/misc";
-import { OrderRefundData_order_fulfillments } from "@saleor/orders/types/OrderRefundData";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -68,7 +67,7 @@ const useStyles = makeStyles(
 );
 
 interface OrderRefundFulfilledProductsProps {
-  fulfillment: OrderRefundData_order_fulfillments;
+  fulfillment: OrderRefundDataQuery["order"]["fulfillments"][0];
   data: OrderRefundFormData;
   disabled: boolean;
   orderNumber: string;
@@ -105,10 +104,10 @@ const OrderRefundFulfilledProducts: React.FC<OrderRefundFulfilledProductsProps> 
       <CardContent className={classes.cartContent}>
         <Button
           className={classes.setMaximalQuantityButton}
-          color="primary"
           onClick={onSetMaximalQuantities}
-          data-test="setMaximalQuantityFulfilledButton"
-          data-test-id={fulfillment?.id}
+          data-test-id={
+            "set-maximal-quantity-fulfilled-button-" + fulfillment?.id
+          }
         >
           <FormattedMessage
             defaultMessage="Set maximal quantities"
@@ -179,8 +178,7 @@ const OrderRefundFulfilledProducts: React.FC<OrderRefundFulfilledProductsProps> 
                         type="number"
                         inputProps={{
                           className: classes.quantityInnerInput,
-                          "data-test": "quantityInput",
-                          "data-test-id": line?.id,
+                          "data-test-id": "quantityInput" + line?.id,
                           max: (line?.quantity).toString(),
                           min: 0,
                           style: { textAlign: "right" }

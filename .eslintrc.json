@@ -84,6 +84,7 @@
     "eqeqeq": ["error", "smart"],
     "guard-for-in": "error",
     "id-blacklist": "off",
+    "import/no-duplicates": "error",
     "import/no-extraneous-dependencies": "off", // imports are handled by simple-import-sort/sort
     "import/no-internal-modules": "off", // imports are handled by simple-import-sort/sort
     "import/order": "off", // imports are handled by simple-import-sort/sort
@@ -173,9 +174,9 @@
     "no-restricted-imports": [
       "error",
       {
-        "paths": ["lodash"]
+        "paths": ["lodash", "@material-ui/icons/Delete"]
       }
     ]
   },
-  "ignorePatterns": ["node_modules/", "**/types/**/*"]
+  "ignorePatterns": ["node_modules/", "**/types/**/*", "type-policies.ts"]
 }

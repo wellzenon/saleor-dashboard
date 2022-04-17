@@ -3,7 +3,10 @@
 
 import faker from "faker";
 
-import { CATEGORIES_LIST } from "../../elements/catalog/categories/categories-list";
+import {
+  CATEGORIES_LIST,
+  categoryRow
+} from "../../elements/catalog/categories/categories-list";
 import { CATEGORY_DETAILS } from "../../elements/catalog/categories/category-details";
 import { BUTTON_SELECTORS } from "../../elements/shared/button-selectors";
 import { SHARED_ELEMENTS } from "../../elements/shared/sharedElements";
@@ -14,11 +17,14 @@ import * as channelsUtils from "../../support/api/utils/channelsUtils";
 import * as productsUtils from "../../support/api/utils/products/productsUtils";
 import { deleteShippingStartsWith } from "../../support/api/utils/shippingUtils";
 import filterTests from "../../support/filterTests";
-import { createCategory } from "../../support/pages/catalog/categoriesPage";
+import {
+  createCategory,
+  updateCategory
+} from "../../support/pages/catalog/categoriesPage";
 
 filterTests({ definedTags: ["all"] }, () => {
-  describe("Categories", () => {
-    const startsWith = "CyCollections";
+  describe("As an admin I want to manage categories", () => {
+    const startsWith = "CyCategories";
     const name = `${startsWith}${faker.datatype.number()}`;
 
     let attribute;
@@ -66,7 +72,7 @@ filterTests({ definedTags: ["all"] }, () => {
       cy.clearSessionData().loginUserViaRequest();
     });
 
-    it("should create category", () => {
+    it("should be able to create category. TC: SALEOR_0201", () => {
       const categoryName = `${startsWith}${faker.datatype.number()}`;
 
       cy.visit(urlList.categories)
@@ -79,13 +85,14 @@ filterTests({ definedTags: ["all"] }, () => {
         })
         .then(newCategory => {
           expect(newCategory.name).to.eq(categoryName);
-          // Uncomment this expect after fixing bug SALEOR-3728
-          // expect(newCategory.description).to.eq(categoryName);
+          const descriptionResp = JSON.parse(newCategory.description);
+          expect(descriptionResp.blocks[0].data.text).to.eq(categoryName);
         });
     });
 
-    it("should add subcategory", () => {
+    it("should be able to create category as subcategory. TC: SALEOR_0202", () => {
       const categoryName = `${startsWith}${faker.datatype.number()}`;
+
       cy.visit(categoryDetailsUrl(category.id))
         .get(CATEGORY_DETAILS.createSubcategoryButton)
         .click();
@@ -98,7 +105,7 @@ filterTests({ definedTags: ["all"] }, () => {
       });
     });
 
-    it("should add product to category", () => {
+    it("should be able to add product to category. TC: SALEOR_0203", () => {
       cy.visit(categoryDetailsUrl(category.id))
         .get(CATEGORY_DETAILS.productsTab)
         .click()
@@ -108,7 +115,7 @@ filterTests({ definedTags: ["all"] }, () => {
         .should("include", urlList.addProduct);
     });
 
-    it("should remove product from category", () => {
+    it("should be able to remove product from category. TC: SALEOR_0204", () => {
       cy.visit(categoryDetailsUrl(category.id))
         .get(CATEGORY_DETAILS.productsTab)
         .click();
@@ -129,12 +136,111 @@ filterTests({ definedTags: ["all"] }, () => {
       });
     });
 
-    it("should enter category details page", () => {
+    it("should be able to enter category details page. TC: SALEOR_0205", () => {
       cy.visit(urlList.categories)
         .get(SHARED_ELEMENTS.searchInput)
         .type(category.name);
       cy.contains(SHARED_ELEMENTS.tableRow, category.name).click();
       cy.contains(SHARED_ELEMENTS.header, category.name).should("be.visible");
+    });
+
+    it("should be able to delete category. TC: SALEOR_0206", () => {
+      const categoryName = `${startsWith}${faker.datatype.number()}`;
+
+      createCategory({ name: categoryName }).then(categoryResp => {
+        cy.visit(categoryDetailsUrl(categoryResp.id))
+          .get(BUTTON_SELECTORS.deleteButton)
+          .click()
+          .addAliasToGraphRequest("CategoryDelete")
+          .get(BUTTON_SELECTORS.submit)
+          .click()
+          .waitForRequestAndCheckIfNoErrors("@CategoryDelete");
+        getCategory(categoryResp.id).should("be.null");
+      });
+    });
+
+    it("should be able to update category. TC: SALEOR_0207", () => {
+      const categoryName = `${startsWith}${faker.datatype.number()}`;
+      const updatedName = `${startsWith}updatedCategory`;
+
+      createCategory({ name: categoryName })
+        .then(categoryResp => {
+          cy.visitAndWaitForProgressBarToDisappear(
+            categoryDetailsUrl(categoryResp.id)
+          );
+          updateCategory({ name: updatedName, description: updatedName });
+          getCategory(categoryResp.id);
+        })
+        .then(categoryResp => {
+          expect(categoryResp.name).to.eq(updatedName);
+          const descriptionJson = JSON.parse(categoryResp.description);
+          const descriptionText = descriptionJson.blocks[0].data.text;
+          expect(descriptionText).to.eq(updatedName);
+        });
+    });
+
+    it("should be able to delete several categories on categories list page. TC: SALEOR_0209", () => {
+      const firstCategoryName = `${startsWith}${faker.datatype.number()}`;
+      const secondCategoryName = `${startsWith}${faker.datatype.number()}`;
+      let firstCategory;
+      let secondCategory;
+
+      createCategory({ name: firstCategoryName }).then(categoryResp => {
+        firstCategory = categoryResp;
+      });
+      createCategory({ name: secondCategoryName }).then(categoryResp => {
+        secondCategory = categoryResp;
+        cy.visit(urlList.categories)
+          .searchInTable(startsWith)
+          .get(categoryRow(firstCategory.id))
+          .find(BUTTON_SELECTORS.checkbox)
+          .click()
+          .get(categoryRow(secondCategory.id))
+          .find(BUTTON_SELECTORS.checkbox)
+          .click()
+          .get(BUTTON_SELECTORS.deleteIcon)
+          .click()
+          .addAliasToGraphRequest("CategoryBulkDelete")
+          .get(BUTTON_SELECTORS.submit)
+          .click()
+          .waitForRequestAndCheckIfNoErrors("@CategoryBulkDelete");
+        getCategory(firstCategory.id).should("be.null");
+        getCategory(secondCategory.id).should("be.null");
+      });
+    });
+
+    it("should be able to remove subcategory from category. TC: SALEOR_0208", () => {
+      const subCategoryName = `${startsWith}${faker.datatype.number()}`;
+      const mainCategoryName = `${startsWith}${faker.datatype.number()}`;
+      let subCategory;
+      let mainCategory;
+
+      createCategory({ name: mainCategoryName })
+        .then(categoryResp => {
+          mainCategory = categoryResp;
+          createCategoryRequest({
+            name: subCategoryName,
+            parent: mainCategory.id
+          });
+        })
+        .then(categoryResp => {
+          subCategory = categoryResp;
+          cy.visit(categoryDetailsUrl(mainCategory.id))
+            .get(categoryRow(subCategory.id))
+            .find(BUTTON_SELECTORS.checkbox)
+            .click()
+            .get(BUTTON_SELECTORS.deleteIcon)
+            .click()
+            .addAliasToGraphRequest("CategoryBulkDelete")
+            .get(BUTTON_SELECTORS.submit)
+            .click()
+            .waitForRequestAndCheckIfNoErrors("@CategoryBulkDelete");
+          getCategory(subCategory.id).should("be.null");
+          getCategory(mainCategory.id);
+        })
+        .then(categoryResp => {
+          expect(categoryResp.children.edges).to.be.empty;
+        });
     });
   });
 });

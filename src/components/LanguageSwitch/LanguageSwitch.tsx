@@ -9,17 +9,15 @@ import {
   Typography
 } from "@material-ui/core";
 import ArrowDropDown from "@material-ui/icons/ArrowDropDown";
+import { LanguageCodeEnum, LanguageFragment } from "@saleor/graphql";
 import { makeStyles } from "@saleor/macaw-ui";
 import classNames from "classnames";
 import React from "react";
 import { FormattedMessage } from "react-intl";
 
-import { LanguageCodeEnum } from "../../types/globalTypes";
-import { ShopInfo_shop_languages } from "../Shop/types/ShopInfo";
-
 export interface LanguageSwitchProps {
   currentLanguage: LanguageCodeEnum;
-  languages: ShopInfo_shop_languages[];
+  languages: LanguageFragment[];
   onLanguageChange: (lang: LanguageCodeEnum) => void;
 }
 
@@ -44,7 +42,7 @@ const useStyles = makeStyles(
       textAlign: "justify"
     },
     menuPaper: {
-      maxHeight: `calc(100vh - ${theme.spacing(2)}px)`,
+      maxHeight: 600,
       overflow: "scroll"
     },
     popover: {
@@ -81,7 +79,6 @@ const LanguageSwitch: React.FC<LanguageSwitchProps> = props => {
         open={isExpanded}
         anchorEl={anchor.current}
         transition
-        disablePortal
         placement="bottom-end"
       >
         {({ TransitionProps, placement }) => (
@@ -92,7 +89,7 @@ const LanguageSwitch: React.FC<LanguageSwitchProps> = props => {
                 placement === "bottom" ? "right top" : "right bottom"
             }}
           >
-            <Paper className={classes.menuPaper}>
+            <Paper className={classes.menuPaper} elevation={8}>
               <ClickAwayListener
                 onClickAway={() => setExpandedState(false)}
                 mouseEvent="onClick"

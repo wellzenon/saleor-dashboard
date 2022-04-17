@@ -1,7 +1,7 @@
 import { LinearProgress, useMediaQuery } from "@material-ui/core";
+import { useUser } from "@saleor/auth";
 import useAppState from "@saleor/hooks/useAppState";
 import useNavigator from "@saleor/hooks/useNavigator";
-import useUser from "@saleor/hooks/useUser";
 import {
   makeStyles,
   SaleorTheme,
@@ -13,7 +13,6 @@ import {
 } from "@saleor/macaw-ui";
 import { isDarkTheme } from "@saleor/misc";
 import { staffMemberDetailsUrl } from "@saleor/staff/urls";
-import classNames from "classnames";
 import React from "react";
 import { useIntl } from "react-intl";
 import useRouter from "use-react-router";
@@ -26,7 +25,7 @@ import UserChip from "../UserChip";
 import useAppChannel from "./AppChannelContext";
 import AppChannelSelect from "./AppChannelSelect";
 import { appLoaderHeight } from "./consts";
-import createMenuStructure from "./menuStructure";
+import useMenuStructure from "./menuStructure";
 import { isMenuActive } from "./utils";
 
 const useStyles = makeStyles(
@@ -40,9 +39,6 @@ const useStyles = makeStyles(
       gridColumn: 2,
       position: "sticky",
       zIndex: 10
-    },
-    appActionDocked: {
-      position: "static"
     },
     appLoader: {
       height: appLoaderHeight,
@@ -73,7 +69,7 @@ const useStyles = makeStyles(
         gridTemplateAreas: `"headerToolbar" 
         "headerAnchor"`
       },
-      marginBottom: theme.spacing(3)
+      marginBottom: theme.spacing(6)
     },
     headerAnchor: {
       gridArea: "headerAnchor"
@@ -108,7 +104,7 @@ const useStyles = makeStyles(
       }
     },
     viewContainer: {
-      minHeight: `calc(100vh + ${appLoaderHeight + 70}px - ${theme.spacing(2)})`
+      minHeight: `calc(100vh - ${appLoaderHeight + 72}px - ${theme.spacing(4)})`
     }
   }),
   {
@@ -123,7 +119,7 @@ interface AppLayoutProps {
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const classes = useStyles({});
   const { themeType, setTheme } = useTheme();
-  const { anchor: appActionAnchor, docked } = useActionBar();
+  const { anchor: appActionAnchor } = useActionBar();
   const appHeaderAnchor = useBacklink();
   const { logout, user } = useUser();
   const navigate = useNavigator();
@@ -141,19 +137,24 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     setChannel
   } = useAppChannel(false);
 
-  const menuStructure = createMenuStructure(intl, user);
+  const [menuStructure, handleMenuItemClick] = useMenuStructure(intl, user);
   const activeMenu = menuStructure.find(menuItem =>
     isMenuActive(location.pathname, menuItem)
   )?.id;
 
+  const reloadWindow = () => {
+    window.location.reload();
+  };
+
   const handleErrorBack = () => {
-    navigate("/");
+    navigate("/", { replace: true });
     dispatchAppState({
       payload: {
         error: null
       },
       type: "displayError"
     });
+    reloadWindow();
   };
 
   const toggleTheme = () => setTheme(isDarkTheme(themeType) ? "light" : "dark");
@@ -167,9 +168,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <div className={classes.root}>
         {isMdUp && (
           <Sidebar
-            active={activeMenu}
+            activeId={activeMenu}
             menuItems={menuStructure}
-            onMenuItemClick={navigate}
+            onMenuItemClick={handleMenuItemClick}
           />
         )}
         <div className={classes.content}>
@@ -187,7 +188,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                     {!isMdUp && (
                       <SidebarDrawer
                         menuItems={menuStructure}
-                        onMenuItemClick={navigate}
+                        onMenuItemClick={handleMenuItemClick}
                       />
                     )}
                     <div className={classes.spacer} />
@@ -223,17 +224,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                     <ErrorPage
                       id={appState.error.id}
                       onBack={handleErrorBack}
+                      onRefresh={() => window.location.reload()}
                     />
                   )
                 : children}
             </main>
           </div>
-          <div
-            className={classNames(classes.appAction, {
-              [classes.appActionDocked]: docked
-            })}
-            ref={appActionAnchor}
-          />
+          <div className={classes.appAction} ref={appActionAnchor} />
         </div>
       </div>
     </>

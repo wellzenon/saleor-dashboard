@@ -13,9 +13,16 @@ import {
   IChannelPriceAndPreorderArgs
 } from "@saleor/channels/utils";
 import { AttributeInput } from "@saleor/components/Attributes";
+import { useExitFormDialog } from "@saleor/components/Form/useExitFormDialog";
 import { MetadataFormData } from "@saleor/components/Metadata";
-import { ProductVariant } from "@saleor/fragments/types/ProductVariant";
+import {
+  ProductVariantFragment,
+  SearchPagesQuery,
+  SearchProductsQuery,
+  SearchWarehousesQuery
+} from "@saleor/graphql";
 import useForm, {
+  CommonUseFormResultWithHandlers,
   FormChange,
   FormErrors,
   SubmitPromise
@@ -24,6 +31,7 @@ import useFormset, {
   FormsetChange,
   FormsetData
 } from "@saleor/hooks/useFormset";
+import useHandleFormSubmit from "@saleor/hooks/useHandleFormSubmit";
 import { errorMessages } from "@saleor/intl";
 import {
   getAttributeInputFromVariant,
@@ -37,18 +45,14 @@ import {
   validateCostPrice,
   validatePrice
 } from "@saleor/products/utils/validation";
-import { SearchPages_search_edges_node } from "@saleor/searches/types/SearchPages";
-import { SearchProducts_search_edges_node } from "@saleor/searches/types/SearchProducts";
-import { SearchWarehouses_search_edges_node } from "@saleor/searches/types/SearchWarehouses";
-import { FetchMoreProps, ReorderEvent } from "@saleor/types";
+import { FetchMoreProps, RelayToFlat, ReorderEvent } from "@saleor/types";
 import { arrayDiff } from "@saleor/utils/arrays";
 import { mapMetadataItemToInput } from "@saleor/utils/maps";
 import getMetadata from "@saleor/utils/metadata/getMetadata";
 import useMetadataChangeTrigger from "@saleor/utils/metadata/useMetadataChangeTrigger";
-import React from "react";
+import React, { useEffect } from "react";
 import { useIntl } from "react-intl";
 
-import handleFormSubmit from "../../../utils/handlers/handleFormSubmit";
 import { ProductStockInput } from "../ProductStocks";
 
 export interface ProductVariantUpdateFormData extends MetadataFormData {
@@ -58,6 +62,7 @@ export interface ProductVariantUpdateFormData extends MetadataFormData {
   isPreorder: boolean;
   globalThreshold: string;
   globalSoldUnits: number;
+  quantityLimitPerCustomer: number | null;
   hasPreorderEndDate: boolean;
   preorderEndDateTime?: string;
 }
@@ -83,10 +88,10 @@ export interface ProductVariantUpdateSubmitData
 }
 
 export interface UseProductVariantUpdateFormOpts {
-  warehouses: SearchWarehouses_search_edges_node[];
+  warehouses: RelayToFlat<SearchWarehousesQuery["search"]>;
   currentChannels: ChannelPriceAndPreorderData[];
-  referencePages: SearchPages_search_edges_node[];
-  referenceProducts: SearchProducts_search_edges_node[];
+  referencePages: RelayToFlat<SearchPagesQuery["search"]>;
+  referenceProducts: RelayToFlat<SearchProductsQuery["search"]>;
   fetchReferencePages?: (data: string) => void;
   fetchMoreReferencePages?: FetchMoreProps;
   fetchReferenceProducts?: (data: string) => void;
@@ -112,32 +117,30 @@ export interface ProductVariantUpdateHandlers
   fetchMoreReferences: FetchMoreProps;
 }
 
-export interface UseProductVariantUpdateFormResult {
-  change: FormChange;
-  data: ProductVariantUpdateData;
+export interface UseProductVariantUpdateFormResult
+  extends CommonUseFormResultWithHandlers<
+    ProductVariantUpdateData,
+    ProductVariantUpdateHandlers
+  > {
   formErrors: FormErrors<ProductVariantUpdateData>;
   disabled: boolean;
-  handlers: ProductVariantUpdateHandlers;
-  hasChanged: boolean;
-  submit: () => void;
 }
 
 export interface ProductVariantUpdateFormProps
   extends UseProductVariantUpdateFormOpts {
   children: (props: UseProductVariantUpdateFormResult) => React.ReactNode;
-  variant: ProductVariant;
+  variant: ProductVariantFragment;
+  loading: boolean;
   onSubmit: (data: ProductVariantUpdateSubmitData) => SubmitPromise;
 }
 
 function useProductVariantUpdateForm(
-  variant: ProductVariant,
+  variant: ProductVariantFragment,
   onSubmit: (data: ProductVariantUpdateSubmitData) => SubmitPromise,
+  loading: boolean,
   opts: UseProductVariantUpdateFormOpts
 ): UseProductVariantUpdateFormResult {
   const intl = useIntl();
-  const [changed, setChanged] = React.useState(false);
-  const triggerChange = () => setChanged(true);
-
   const attributeInput = getAttributeInputFromVariant(variant);
   const stockInput = getStockInputFromVariant(variant);
 
@@ -165,10 +168,28 @@ function useProductVariantUpdateForm(
     globalSoldUnits: variant?.preorder?.globalSoldUnits || 0,
     hasPreorderEndDate: !!variant?.preorder?.endDate,
     preorderEndDateTime: variant?.preorder?.endDate,
-    weight: variant?.weight?.value.toString() || ""
+    weight: variant?.weight?.value.toString() || "",
+    quantityLimitPerCustomer: variant?.quantityLimitPerCustomer || null
   };
 
-  const form = useForm(initial);
+  const form = useForm(initial, undefined, {
+    confirmLeave: true
+  });
+
+  const {
+    handleChange,
+    triggerChange,
+    data: formData,
+    setChanged,
+    hasChanged,
+    formId,
+    setIsSubmitDisabled
+  } = form;
+
+  const { setExitDialogSubmitRef } = useExitFormDialog({
+    formId
+  });
+
   const attributes = useFormset(attributeInput);
   const attributesWithNewFileValue = useFormset<null, File>([]);
   const stocks = useFormset(stockInput);
@@ -179,10 +200,6 @@ function useProductVariantUpdateForm(
     makeChangeHandler: makeMetadataChangeHandler
   } = useMetadataChangeTrigger();
 
-  const handleChange: FormChange = (event, cb) => {
-    form.change(event, cb);
-    triggerChange();
-  };
   const changeMetadata = makeMetadataChangeHandler(handleChange);
   const handleAttributeChange = createAttributeChangeHandler(
     attributes.change,
@@ -266,7 +283,7 @@ function useProductVariantUpdateForm(
   );
 
   const data: ProductVariantUpdateData = {
-    ...form.data,
+    ...formData,
     attributes: getAttributesDisplayData(
       attributes.data,
       attributesWithNewFileValue.data,
@@ -288,8 +305,8 @@ function useProductVariantUpdateForm(
       !!form.errors.preorderEndDateTime);
 
   const submitData: ProductVariantUpdateSubmitData = {
-    ...form.data,
-    ...getMetadata(form.data, isMetadataModified, isPrivateMetadataModified),
+    ...formData,
+    ...getMetadata(formData, isMetadataModified, isPrivateMetadataModified),
     addStocks,
     attributes: attributes.data,
     attributesWithNewFileValue: attributesWithNewFileValue.data,
@@ -308,7 +325,18 @@ function useProductVariantUpdateForm(
     return errors;
   };
 
-  const submit = () => handleFormSubmit(submitData, handleSubmit, setChanged);
+  const handleFormSubmit = useHandleFormSubmit({
+    formId,
+    onSubmit: handleSubmit,
+    setChanged
+  });
+
+  const submit = () => handleFormSubmit(submitData);
+
+  useEffect(() => setExitDialogSubmitRef(submit), [submit]);
+
+  const isSaveDisabled = loading || disabled || !hasChanged;
+  setIsSubmitDisabled(isSaveDisabled);
 
   return {
     change: handleChange,
@@ -330,8 +358,9 @@ function useProductVariantUpdateForm(
       selectAttributeMultiple: handleAttributeMultiChange,
       selectAttributeReference: handleAttributeReferenceChange
     },
-    hasChanged: changed,
-    submit
+    hasChanged,
+    submit,
+    isSaveDisabled
   };
 }
 
@@ -339,9 +368,10 @@ const ProductVariantUpdateForm: React.FC<ProductVariantUpdateFormProps> = ({
   children,
   variant,
   onSubmit,
+  loading,
   ...rest
 }) => {
-  const props = useProductVariantUpdateForm(variant, onSubmit, rest);
+  const props = useProductVariantUpdateForm(variant, onSubmit, loading, rest);
 
   return <form onSubmit={props.submit}>{children(props)}</form>;
 };

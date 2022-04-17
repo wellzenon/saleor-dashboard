@@ -1,3 +1,4 @@
+import { PermissionEnum } from "@saleor/graphql";
 import { FetchMoreProps, SearchPageProps } from "@saleor/types";
 import { MessageDescriptor } from "react-intl";
 
@@ -34,6 +35,7 @@ export interface IFilterElement<T extends string = string>
   multipleFields?: IFilterElement[];
   id?: string;
   dependencies?: string[];
+  permissions?: PermissionEnum[];
 }
 
 export interface FilterBaseFieldProps<T extends string = string> {

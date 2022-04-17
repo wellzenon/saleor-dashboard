@@ -1,8 +1,9 @@
-import { Button, Card } from "@material-ui/core";
+import { Card } from "@material-ui/core";
 import { AttributeListUrlSortField } from "@saleor/attributes/urls";
 import FilterBar from "@saleor/components/FilterBar";
+import { AttributeFragment } from "@saleor/graphql";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
+import { Backlink, Button } from "@saleor/macaw-ui";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -15,7 +16,6 @@ import {
   SortPage,
   TabPageProps
 } from "../../../types";
-import { AttributeList_attributes_edges_node } from "../../types/AttributeList";
 import AttributeList from "../AttributeList/AttributeList";
 import {
   AttributeFilterKeys,
@@ -29,7 +29,7 @@ export interface AttributeListPageProps
     FilterPageProps<AttributeFilterKeys, AttributeListFilterOpts>,
     SortPage<AttributeListUrlSortField>,
     TabPageProps {
-  attributes: AttributeList_attributes_edges_node[];
+  attributes: AttributeFragment[];
   onBack: () => void;
 }
 
@@ -60,9 +60,8 @@ const AttributeListPage: React.FC<AttributeListPageProps> = ({
       <PageHeader title={intl.formatMessage(sectionNames.attributes)}>
         <Button
           onClick={onAdd}
-          color="primary"
-          variant="contained"
-          data-test-id="createAttributeButton"
+          variant="primary"
+          data-test-id="create-attribute-button"
         >
           <FormattedMessage
             defaultMessage="Create attribute"

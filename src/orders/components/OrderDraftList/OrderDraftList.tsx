@@ -7,6 +7,7 @@ import Skeleton from "@saleor/components/Skeleton";
 import TableCellHeader from "@saleor/components/TableCellHeader";
 import TableHead from "@saleor/components/TableHead";
 import TablePagination from "@saleor/components/TablePagination";
+import { OrderDraftListQuery } from "@saleor/graphql";
 import { makeStyles } from "@saleor/macaw-ui";
 import {
   maybe,
@@ -15,12 +16,10 @@ import {
   transformPaymentStatus
 } from "@saleor/misc";
 import { OrderDraftListUrlSortField } from "@saleor/orders/urls";
-import { ListActions, ListProps, SortPage } from "@saleor/types";
+import { ListActions, ListProps, RelayToFlat, SortPage } from "@saleor/types";
 import { getArrowDirection } from "@saleor/utils/sort";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
-import { OrderDraftList_draftOrders_edges_node } from "../../types/OrderDraftList";
 
 const useStyles = makeStyles(
   theme => ({
@@ -55,10 +54,8 @@ interface OrderDraftListProps
   extends ListProps,
     ListActions,
     SortPage<OrderDraftListUrlSortField> {
-  orders: OrderDraftList_draftOrders_edges_node[];
+  orders: RelayToFlat<OrderDraftListQuery["draftOrders"]>;
 }
-
-const numberOfColumns = 5;
 
 export const OrderDraftList: React.FC<OrderDraftListProps> = props => {
   const {
@@ -78,6 +75,7 @@ export const OrderDraftList: React.FC<OrderDraftListProps> = props => {
     toggleAll,
     toolbar
   } = props;
+
   const classes = useStyles(props);
 
   const intl = useIntl();
@@ -89,6 +87,8 @@ export const OrderDraftList: React.FC<OrderDraftListProps> = props => {
         status: transformOrderStatus(order.status, intl)
       }))
     : undefined;
+
+  const numberOfColumns = orderDraftList?.length === 0 ? 4 : 5;
 
   return (
     <ResponsiveTable>
@@ -209,7 +209,7 @@ export const OrderDraftList: React.FC<OrderDraftListProps> = props => {
                     <Skeleton />
                   )}
                 </TableCell>
-                <TableCell className={classes.colTotal}>
+                <TableCell className={classes.colTotal} align="right">
                   {maybe(() => order.total.gross) ? (
                     <Money money={order.total.gross} />
                   ) : (

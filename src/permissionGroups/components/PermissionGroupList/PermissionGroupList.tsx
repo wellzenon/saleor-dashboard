@@ -1,19 +1,17 @@
 import {
-  IconButton,
   TableBody,
   TableCell,
   TableFooter,
   TableHead,
   TableRow
 } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
 import ResponsiveTable from "@saleor/components/ResponsiveTable";
 import Skeleton from "@saleor/components/Skeleton";
 import TableCellHeader from "@saleor/components/TableCellHeader";
 import TablePagination from "@saleor/components/TablePagination";
-import { makeStyles } from "@saleor/macaw-ui";
+import { PermissionGroupFragment } from "@saleor/graphql";
+import { DeleteIcon, IconButton, makeStyles } from "@saleor/macaw-ui";
 import { maybe, renderCollection, stopPropagation } from "@saleor/misc";
-import { PermissionGroupList_permissionGroups_edges_node } from "@saleor/permissionGroups/types/PermissionGroupList";
 import { PermissionGroupListUrlSortField } from "@saleor/permissionGroups/urls";
 import { ListProps, SortPage } from "@saleor/types";
 import { getArrowDirection } from "@saleor/utils/sort";
@@ -57,7 +55,7 @@ const numberOfColumns = 3;
 interface PermissionGroupListProps
   extends ListProps,
     SortPage<PermissionGroupListUrlSortField> {
-  permissionGroups: PermissionGroupList_permissionGroups_edges_node[];
+  permissionGroups: PermissionGroupFragment[];
   onDelete: (id: string) => void;
 }
 
@@ -126,19 +124,18 @@ const PermissionGroupList: React.FC<PermissionGroupListProps> = props => {
               onClick={
                 permissionGroup ? onRowClick(permissionGroup.id) : undefined
               }
-              data-test="id"
-              data-test-id={maybe(() => permissionGroup.id)}
+              data-test-id={"id-" + maybe(() => permissionGroup.id)}
             >
               <TableCell className={classes.colName}>
                 {permissionGroup ? (
-                  <span data-test="name">{permissionGroup.name}</span>
+                  <span data-test-id="name">{permissionGroup.name}</span>
                 ) : (
                   <Skeleton />
                 )}
               </TableCell>
               <TableCell className={classes.colMembers}>
                 {permissionGroup ? (
-                  <span data-test="members">
+                  <span data-test-id="members">
                     {permissionGroup.users.length}
                   </span>
                 ) : (
@@ -150,7 +147,8 @@ const PermissionGroupList: React.FC<PermissionGroupListProps> = props => {
                   <>
                     {permissionGroup.userCanManage && (
                       <IconButton
-                        data-test-id="deleteIcon"
+                        variant="secondary"
+                        data-test-id="delete-icon"
                         color="primary"
                         onClick={stopPropagation(() =>
                           onDelete(permissionGroup.id)

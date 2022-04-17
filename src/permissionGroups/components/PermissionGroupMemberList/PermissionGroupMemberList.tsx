@@ -1,20 +1,19 @@
 import {
-  Button,
   Card,
-  IconButton,
+  CardContent,
   TableBody,
   TableCell,
   TableRow,
   Typography
 } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
 import CardTitle from "@saleor/components/CardTitle";
 import Checkbox from "@saleor/components/Checkbox";
 import ResponsiveTable from "@saleor/components/ResponsiveTable";
 import Skeleton from "@saleor/components/Skeleton";
 import TableCellHeader from "@saleor/components/TableCellHeader";
 import TableHead from "@saleor/components/TableHead";
-import { makeStyles } from "@saleor/macaw-ui";
+import { PermissionGroupMemberFragment } from "@saleor/graphql";
+import { Button, DeleteIcon, IconButton, makeStyles } from "@saleor/macaw-ui";
 import {
   getUserInitials,
   getUserName,
@@ -22,7 +21,6 @@ import {
   stopPropagation
 } from "@saleor/misc";
 import { sortMembers } from "@saleor/permissionGroups/sort";
-import { PermissionGroupDetails_permissionGroup_users } from "@saleor/permissionGroups/types/PermissionGroupDetails";
 import { MembersListUrlSortField } from "@saleor/permissionGroups/urls";
 import { ListActions, SortPage } from "@saleor/types";
 import { getArrowDirection } from "@saleor/utils/sort";
@@ -73,8 +71,6 @@ const useStyles = makeStyles(
       textAlign: "right"
     },
     helperText: {
-      marginBottom: theme.spacing(3),
-      marginTop: theme.spacing(3),
       textAlign: "center"
     },
     statusText: {
@@ -89,7 +85,7 @@ const numberOfColumns = 4;
 interface PermissionGroupProps
   extends ListActions,
     SortPage<MembersListUrlSortField> {
-  users: PermissionGroupDetails_permissionGroup_users[];
+  users: PermissionGroupMemberFragment[];
   disabled: boolean;
   onUnassign: (ida: string[]) => void;
   onAssign: () => void;
@@ -137,7 +133,7 @@ const PermissionGroupMemberList: React.FC<PermissionGroupProps> = props => {
         }
       />
       {members?.length === 0 ? (
-        <div className={classNames(classes.helperText)}>
+        <CardContent className={classes.helperText}>
           <Typography color="textSecondary">
             <FormattedMessage
               defaultMessage="You haven’t assigned any member to this permission group yet."
@@ -150,7 +146,7 @@ const PermissionGroupMemberList: React.FC<PermissionGroupProps> = props => {
               description="empty list message"
             />
           </Typography>
-        </div>
+        </CardContent>
       ) : (
         <ResponsiveTable>
           <TableHead
@@ -257,7 +253,8 @@ const PermissionGroupMemberList: React.FC<PermissionGroupProps> = props => {
                       {user ? (
                         <>
                           <IconButton
-                            data-test-id="removeUser"
+                            variant="secondary"
+                            data-test-id="remove-user"
                             disabled={disabled}
                             color="primary"
                             onClick={stopPropagation(() =>

@@ -17,11 +17,17 @@ const props: PageListPageProps = {
   ...listActionsProps,
   ...pageListProps.default,
   ...sortPageProps,
-  onBack: () => undefined,
   pages: pageList,
   sort: {
     ...sortPageProps.sort,
     sort: PageListUrlSortField.title
+  },
+  actionDialogOpts: {
+    open: () => undefined,
+    close: () => undefined
+  },
+  params: {
+    ids: []
   }
 };
 

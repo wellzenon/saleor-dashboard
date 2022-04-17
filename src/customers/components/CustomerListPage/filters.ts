@@ -1,4 +1,6 @@
 import { IFilter } from "@saleor/components/Filter";
+import { hasPermissions } from "@saleor/components/RequirePermissions";
+import { PermissionEnum, UserFragment } from "@saleor/graphql";
 import { FilterOpts, MinMax } from "@saleor/types";
 import {
   createDateField,
@@ -28,7 +30,8 @@ const messages = defineMessages({
 
 export function createFilterStructure(
   intl: IntlShape,
-  opts: CustomerListFilterOpts
+  opts: CustomerListFilterOpts,
+  userPermissions: UserFragment["userPermissions"]
 ): IFilter<CustomerFilterKeys> {
   return [
     {
@@ -45,7 +48,8 @@ export function createFilterStructure(
         intl.formatMessage(messages.numberOfOrders),
         opts.numberOfOrders.value
       ),
-      active: opts.numberOfOrders.active
+      active: opts.numberOfOrders.active,
+      permissions: [PermissionEnum.MANAGE_ORDERS]
     }
-  ];
+  ].filter(filter => hasPermissions(userPermissions, filter.permissions ?? []));
 }

@@ -1,7 +1,7 @@
 import { Card, CardContent, TextField } from "@material-ui/core";
 import CardSpacer from "@saleor/components/CardSpacer";
 import CardTitle from "@saleor/components/CardTitle";
-import { ShippingErrorFragment } from "@saleor/fragments/types/ShippingErrorFragment";
+import { ShippingErrorFragment } from "@saleor/graphql";
 import { commonMessages } from "@saleor/intl";
 import { makeStyles } from "@saleor/macaw-ui";
 import { getFormErrors } from "@saleor/utils/errors";
@@ -72,7 +72,7 @@ const ShippingZoneInfo: React.FC<ShippingZoneInfoProps> = ({
           helperText={getShippingErrorMessage(formErrors.name, intl)}
           label={intl.formatMessage(messages.name)}
           inputProps={{
-            "data-test": "name"
+            "data-test-id": "name"
           }}
           name="name"
           value={data.name}

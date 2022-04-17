@@ -1,23 +1,26 @@
-import { Button } from "@material-ui/core";
 import HorizontalSpacer from "@saleor/apps/components/HorizontalSpacer";
-import VerticalSpacer from "@saleor/apps/components/VerticalSpacer";
 import CardMenu, { CardMenuItem } from "@saleor/components/CardMenu";
 import PageHeader from "@saleor/components/PageHeader";
 import useNavigator from "@saleor/hooks/useNavigator";
 import { sectionNames } from "@saleor/intl";
+import { Button } from "@saleor/macaw-ui";
 import React from "react";
 import { useIntl } from "react-intl";
 
 import { giftCardSettingsUrl } from "../../urls";
 import { giftCardsListHeaderMenuItemsMessages as messages } from "../messages";
-import useGiftCardListDialogs from "../providers/GiftCardListDialogsProvider/hooks/useGiftCardListDialogs";
+import { useGiftCardListDialogs } from "../providers/GiftCardListDialogsProvider";
 import GiftCardsListHeaderAlert from "./GiftCardsListHeaderAlert";
 
 const GiftCardsListHeader: React.FC = () => {
   const intl = useIntl();
   const navigate = useNavigator();
 
-  const { openCreateDialog } = useGiftCardListDialogs();
+  const {
+    openCreateDialog,
+    openBulkCreateDialog,
+    openExportDialog
+  } = useGiftCardListDialogs();
 
   const openSettings = () => navigate(giftCardSettingsUrl);
 
@@ -26,35 +29,36 @@ const GiftCardsListHeader: React.FC = () => {
       label: intl.formatMessage(messages.settings),
       testId: "settingsMenuItem",
       onSelect: openSettings
+    },
+    {
+      label: intl.formatMessage(messages.bulkIssue),
+      testId: "bulkIssueMenuItem",
+      onSelect: openBulkCreateDialog
+    },
+    {
+      label: intl.formatMessage(messages.exportCodes),
+      testId: "exportCodesMenuItem",
+      onSelect: openExportDialog
     }
-    //   {
-    //     label: intl.formatMessage(messages.bulkIssue),
-    //     testId: "bulkIssueMenuItem"
-    //     //   onSelect:
-    //   },
-    //   {
-    //     label: intl.formatMessage(messages.exportCodes),
-    //     testId: "exportCodesMenuItem"
-    //     //   onSelect:
-    //   }
   ];
 
   return (
     <>
-      <PageHeader title={intl.formatMessage(sectionNames.giftCards)}>
-        <CardMenu menuItems={menuItems} data-test="menu" />
+      <PageHeader
+        preview
+        title={intl.formatMessage(sectionNames.giftCards)}
+        cardMenu={<CardMenu menuItems={menuItems} data-test-id="menu" />}
+      >
         <HorizontalSpacer spacing={2} />
         <Button
-          color="primary"
-          variant="contained"
+          variant="primary"
           onClick={openCreateDialog}
-          data-test-id="issueCardButton"
+          data-test-id="issue-card-button"
         >
           {intl.formatMessage(messages.issueButtonLabel)}
         </Button>
       </PageHeader>
       <GiftCardsListHeaderAlert />
-      <VerticalSpacer spacing={2} />
     </>
   );
 };

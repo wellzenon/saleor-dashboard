@@ -1,18 +1,16 @@
 import {
-  Button,
   Card,
-  IconButton,
   TableBody,
   TableCell,
   TableHead,
   TableRow
 } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
-import { App_app_webhooks } from "@saleor/apps/types/App";
 import CardTitle from "@saleor/components/CardTitle";
 import ResponsiveTable from "@saleor/components/ResponsiveTable";
 import Skeleton from "@saleor/components/Skeleton";
 import TableCellHeader from "@saleor/components/TableCellHeader";
+import { AppQuery } from "@saleor/graphql";
+import { Button, DeleteIcon, IconButton } from "@saleor/macaw-ui";
 import { renderCollection, stopPropagation } from "@saleor/misc";
 import { isUnnamed } from "@saleor/webhooks/utils";
 import classNames from "classnames";
@@ -22,12 +20,11 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { useStyles } from "./styles";
 
 export interface WebhooksListProps {
-  webhooks: App_app_webhooks[];
+  webhooks: AppQuery["app"]["webhooks"];
   onRemove: (id: string) => void;
   onRowClick: (id: string) => () => void;
   onCreate?: () => void;
 }
-const numberOfColumns = 3;
 
 const WebhooksList: React.FC<WebhooksListProps> = ({
   webhooks,
@@ -37,6 +34,7 @@ const WebhooksList: React.FC<WebhooksListProps> = ({
 }) => {
   const intl = useIntl();
   const classes = useStyles({});
+  const numberOfColumns = webhooks?.length === 0 ? 2 : 3;
 
   return (
     <Card>
@@ -48,9 +46,9 @@ const WebhooksList: React.FC<WebhooksListProps> = ({
         toolbar={
           !!onCreate && (
             <Button
-              color="primary"
+              variant="secondary"
               onClick={onCreate}
-              data-test-id="createWebhook"
+              data-test-id="create-webhook"
             >
               <FormattedMessage
                 defaultMessage="Create Webhook"
@@ -104,6 +102,7 @@ const WebhooksList: React.FC<WebhooksListProps> = ({
                   className={classNames(classes.colAction, classes.colRight)}
                 >
                   <IconButton
+                    variant="secondary"
                     color="primary"
                     onClick={
                       webhook

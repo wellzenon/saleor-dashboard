@@ -1,23 +1,27 @@
 import { CardSpacer } from "@saleor/components/CardSpacer";
-import { ConfirmButtonTransitionState } from "@saleor/components/ConfirmButton";
 import Container from "@saleor/components/Container";
 import Form from "@saleor/components/Form";
 import Grid from "@saleor/components/Grid";
 import Metadata from "@saleor/components/Metadata/Metadata";
 import { MetadataFormData } from "@saleor/components/Metadata/types";
 import PageHeader from "@saleor/components/PageHeader";
+import RequirePermissions from "@saleor/components/RequirePermissions";
 import Savebar from "@saleor/components/Savebar";
-import { AccountErrorFragment } from "@saleor/fragments/types/AccountErrorFragment";
+import CustomerGiftCardsCard from "@saleor/giftCards/components/GiftCardCustomerCard/CustomerGiftCardsCard";
+import {
+  AccountErrorFragment,
+  CustomerDetailsQuery,
+  PermissionEnum
+} from "@saleor/graphql";
 import { SubmitPromise } from "@saleor/hooks/useForm";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
+import { Backlink, ConfirmButtonTransitionState } from "@saleor/macaw-ui";
 import { mapEdgesToItems, mapMetadataItemToInput } from "@saleor/utils/maps";
 import useMetadataChangeTrigger from "@saleor/utils/metadata/useMetadataChangeTrigger";
 import React from "react";
 import { useIntl } from "react-intl";
 
 import { getUserName } from "../../../misc";
-import { CustomerDetails_user } from "../../types/CustomerDetails";
 import CustomerAddresses from "../CustomerAddresses";
 import CustomerDetails from "../CustomerDetails";
 import CustomerInfo from "../CustomerInfo";
@@ -33,12 +37,14 @@ export interface CustomerDetailsPageFormData extends MetadataFormData {
 }
 
 export interface CustomerDetailsPageProps {
-  customer: CustomerDetails_user;
+  customer: CustomerDetailsQuery["user"];
   disabled: boolean;
   errors: AccountErrorFragment[];
   saveButtonBar: ConfirmButtonTransitionState;
   onBack: () => void;
-  onSubmit: (data: CustomerDetailsPageFormData) => SubmitPromise;
+  onSubmit: (
+    data: CustomerDetailsPageFormData
+  ) => SubmitPromise<AccountErrorFragment[]>;
   onViewAllOrdersClick: () => void;
   onRowClick: (id: string) => void;
   onAddressManageClick: () => void;
@@ -74,8 +80,13 @@ const CustomerDetailsPage: React.FC<CustomerDetailsPageProps> = ({
   } = useMetadataChangeTrigger();
 
   return (
-    <Form initial={initialForm} onSubmit={onSubmit} confirmLeave>
-      {({ change, data, hasChanged, submit }) => {
+    <Form
+      confirmLeave
+      initial={initialForm}
+      onSubmit={onSubmit}
+      disabled={disabled}
+    >
+      {({ change, data, isSaveDisabled, submit }) => {
         const changeMetadata = makeMetadataChangeHandler(change);
 
         return (
@@ -101,12 +112,16 @@ const CustomerDetailsPage: React.FC<CustomerDetailsPageProps> = ({
                   onChange={change}
                 />
                 <CardSpacer />
-                <CustomerOrders
-                  orders={mapEdgesToItems(customer?.orders)}
-                  onViewAllOrdersClick={onViewAllOrdersClick}
-                  onRowClick={onRowClick}
-                />
-                <CardSpacer />
+                <RequirePermissions
+                  requiredPermissions={[PermissionEnum.MANAGE_ORDERS]}
+                >
+                  <CustomerOrders
+                    orders={mapEdgesToItems(customer?.orders)}
+                    onViewAllOrdersClick={onViewAllOrdersClick}
+                    onRowClick={onRowClick}
+                  />
+                  <CardSpacer />
+                </RequirePermissions>
                 <Metadata data={data} onChange={changeMetadata} />
               </div>
               <div>
@@ -117,10 +132,16 @@ const CustomerDetailsPage: React.FC<CustomerDetailsPageProps> = ({
                 />
                 <CardSpacer />
                 <CustomerStats customer={customer} />
+                <CardSpacer />
+                <RequirePermissions
+                  requiredPermissions={[PermissionEnum.MANAGE_GIFT_CARD]}
+                >
+                  <CustomerGiftCardsCard />
+                </RequirePermissions>
               </div>
             </Grid>
             <Savebar
-              disabled={disabled || !hasChanged}
+              disabled={isSaveDisabled}
               state={saveButtonBar}
               onSubmit={submit}
               onCancel={onBack}

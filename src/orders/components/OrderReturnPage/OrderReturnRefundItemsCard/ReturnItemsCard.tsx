@@ -2,7 +2,6 @@ import {
   Card,
   CardContent,
   Checkbox,
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -12,14 +11,14 @@ import {
 import Money from "@saleor/components/Money";
 import Skeleton from "@saleor/components/Skeleton";
 import TableCellAvatar from "@saleor/components/TableCellAvatar";
-import { OrderErrorFragment } from "@saleor/fragments/types/OrderErrorFragment";
-import { FormsetChange } from "@saleor/hooks/useFormset";
-import { makeStyles } from "@saleor/macaw-ui";
-import { renderCollection } from "@saleor/misc";
 import {
-  OrderDetails_order,
-  OrderDetails_order_lines
-} from "@saleor/orders/types/OrderDetails";
+  OrderDetailsFragment,
+  OrderErrorFragment,
+  OrderLineFragment
+} from "@saleor/graphql";
+import { FormsetChange } from "@saleor/hooks/useFormset";
+import { makeStyles, ResponsiveTable } from "@saleor/macaw-ui";
+import { renderCollection } from "@saleor/misc";
 import React, { CSSProperties } from "react";
 import { defineMessages, FormattedMessage, useIntl } from "react-intl";
 
@@ -47,6 +46,9 @@ const useStyles = makeStyles(
         marginTop: theme.spacing(2)
       },
 
+      quantityField: {
+        minWidth: "80px"
+      },
       quantityInnerInput: {
         ...inputPadding
       },
@@ -89,8 +91,8 @@ interface OrderReturnRefundLinesCardProps {
   fulfilmentId?: string;
   canReplace?: boolean;
   errors: OrderErrorFragment[];
-  lines: OrderDetails_order_lines[];
-  order: OrderDetails_order;
+  lines: OrderLineFragment[];
+  order: OrderDetailsFragment;
   itemsSelections: FormsetReplacementData;
   itemsQuantities: FormsetQuantityData;
   onChangeSelected: FormsetChange<boolean>;
@@ -127,7 +129,7 @@ const ItemsCard: React.FC<OrderReturnRefundLinesCardProps> = ({
       <CardContent className={classes.cartContent}>
         <MaximalButton onClick={onSetMaxQuantity} />
       </CardContent>
-      <Table>
+      <ResponsiveTable>
         <TableHead>
           <TableRow>
             <TableCell>
@@ -206,6 +208,7 @@ const ItemsCard: React.FC<OrderReturnRefundLinesCardProps> = ({
                   <TableCell align="right">
                     {isReturnable && (
                       <TextField
+                        className={classes.quantityField}
                         type="number"
                         inputProps={{
                           className: classes.quantityInnerInput,
@@ -253,7 +256,7 @@ const ItemsCard: React.FC<OrderReturnRefundLinesCardProps> = ({
             )
           )}
         </TableBody>
-      </Table>
+      </ResponsiveTable>
     </Card>
   );
 };

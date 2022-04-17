@@ -1,15 +1,18 @@
-import { Button, Typography } from "@material-ui/core";
+import { Typography } from "@material-ui/core";
 import Container from "@saleor/components/Container";
 import Hr from "@saleor/components/Hr";
 import PageHeader from "@saleor/components/PageHeader";
-import { RefreshLimits_shop_limits } from "@saleor/components/Shop/types/RefreshLimits";
+import {
+  ProductVariantBulkCreateInput,
+  RefreshLimitsQuery
+} from "@saleor/graphql";
+import { SubmitPromise } from "@saleor/hooks/useForm";
 import useWizard from "@saleor/hooks/useWizard";
-import { makeStyles } from "@saleor/macaw-ui";
+import { Button, makeStyles } from "@saleor/macaw-ui";
 import { validatePrice } from "@saleor/products/utils/validation";
 import React from "react";
 import { FormattedMessage, IntlShape, useIntl } from "react-intl";
 
-import { ProductVariantBulkCreateInput } from "../../../types/globalTypes";
 import { createInitialForm, ProductVariantCreateFormData } from "./form";
 import ProductVariantCreatorContent, {
   ProductVariantCreatorContentProps
@@ -47,7 +50,9 @@ function canHitNext(
   switch (step) {
     case ProductVariantCreatorStep.values:
       return (
-        data.attributes.every(attribute => attribute.values.length > 0) &&
+        data.attributes.every(
+          attribute => !attribute.valueRequired || attribute.values.length > 0
+        ) &&
         (variantsLeft === null || getVariantsNumber(data) <= variantsLeft)
       );
     case ProductVariantCreatorStep.prices:
@@ -88,8 +93,8 @@ export interface ProductVariantCreatePageProps
     ProductVariantCreatorContentProps,
     "data" | "dispatchFormDataAction" | "step" | "variantsLeft" | "onStepClick"
   > {
-  limits: RefreshLimits_shop_limits;
-  onSubmit: (data: ProductVariantBulkCreateInput[]) => void;
+  limits: RefreshLimitsQuery["shop"]["limits"];
+  onSubmit: (data: ProductVariantBulkCreateInput[]) => SubmitPromise;
 }
 
 function getTitle(step: ProductVariantCreatorStep, intl: IntlShape): string {
@@ -198,7 +203,7 @@ const ProductVariantCreatePage: React.FC<ProductVariantCreatePageProps> = props 
         }
       >
         {step !== ProductVariantCreatorStep.values && (
-          <Button className={classes.button} color="primary" onClick={prevStep}>
+          <Button className={classes.button} onClick={prevStep}>
             <FormattedMessage
               defaultMessage="Previous"
               description="previous step, button"
@@ -209,9 +214,8 @@ const ProductVariantCreatePage: React.FC<ProductVariantCreatePageProps> = props 
           <Button
             data-test-id="next-step"
             className={classes.button}
-            color="primary"
             disabled={!canHitNext(step, wizardData, variantsLeft)}
-            variant="contained"
+            variant="primary"
             onClick={nextStep}
           >
             <FormattedMessage defaultMessage="Next" description="button" />
@@ -219,9 +223,8 @@ const ProductVariantCreatePage: React.FC<ProductVariantCreatePageProps> = props 
         ) : (
           <Button
             className={classes.button}
-            color="primary"
             disabled={!canHitNext(step, wizardData, variantsLeft)}
-            variant="contained"
+            variant="primary"
             onClick={() => onSubmit(wizardData.variants)}
           >
             <FormattedMessage

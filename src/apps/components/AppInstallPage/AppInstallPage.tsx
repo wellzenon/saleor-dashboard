@@ -1,24 +1,26 @@
 import saleorDarkLogoSmall from "@assets/images/logo-dark-small.svg";
 import plusIcon from "@assets/images/plus-icon.svg";
-import { Button, Card, CardContent, Grid, Typography } from "@material-ui/core";
+import { Card, CardContent, Grid, Typography } from "@material-ui/core";
 import CardSpacer from "@saleor/components/CardSpacer";
 import CardTitle from "@saleor/components/CardTitle";
 import Container from "@saleor/components/Container";
 import Hr from "@saleor/components/Hr";
 import Skeleton from "@saleor/components/Skeleton";
+import { AppFetchMutation, AppInstallMutation } from "@saleor/graphql";
+import { SubmitPromise } from "@saleor/hooks/useForm";
 import { buttonMessages } from "@saleor/intl";
+import { Button } from "@saleor/macaw-ui";
 import classNames from "classnames";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useStyles } from "../../styles";
-import { AppFetch_appFetchManifest_manifest } from "../../types/AppFetch";
 
 export interface AppInstallPageProps {
-  data: AppFetch_appFetchManifest_manifest;
+  data: AppFetchMutation["appFetchManifest"]["manifest"];
   loading: boolean;
   navigateToAppsList: () => void;
-  onSubmit: () => void;
+  onSubmit: () => SubmitPromise<AppInstallMutation["appInstall"]["errors"]>;
 }
 
 export const AppInstallPage: React.FC<AppInstallPageProps> = ({
@@ -127,24 +129,16 @@ export const AppInstallPage: React.FC<AppInstallPageProps> = ({
       <CardSpacer />
       <Grid container justify="space-between">
         <Grid xs={6} item>
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={navigateToAppsList}
-          >
-            <Typography color="primary">
-              <FormattedMessage {...buttonMessages.cancel} />
-            </Typography>
+          <Button variant="secondary" onClick={navigateToAppsList}>
+            <FormattedMessage {...buttonMessages.cancel} />
           </Button>
         </Grid>
         <Grid xs={6} item className={classes.alignRight}>
-          <Button variant="contained" color="primary" onClick={onSubmit}>
-            <Typography className={classes.installText}>
-              <FormattedMessage
-                defaultMessage="Install App"
-                description="install button"
-              />
-            </Typography>
+          <Button variant="primary" onClick={onSubmit}>
+            <FormattedMessage
+              defaultMessage="Install App"
+              description="install button"
+            />
           </Button>
         </Grid>
       </Grid>

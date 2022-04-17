@@ -1,31 +1,29 @@
 import {
-  Button,
   Card,
-  IconButton,
   TableBody,
   TableCell,
   TableFooter,
   TableRow
 } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
 import CardTitle from "@saleor/components/CardTitle";
 import Checkbox from "@saleor/components/Checkbox";
 import ResponsiveTable from "@saleor/components/ResponsiveTable";
 import Skeleton from "@saleor/components/Skeleton";
 import TableHead from "@saleor/components/TableHead";
 import TablePagination from "@saleor/components/TablePagination";
+import { SaleDetailsFragment, VoucherDetailsFragment } from "@saleor/graphql";
+import { Button, DeleteIcon, IconButton } from "@saleor/macaw-ui";
 import { mapEdgesToItems } from "@saleor/utils/maps";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { maybe, renderCollection } from "../../../misc";
 import { ListActions, ListProps } from "../../../types";
-import { SaleDetails_sale } from "../../types/SaleDetails";
-import { VoucherDetails_voucher } from "../../types/VoucherDetails";
 import { messages } from "./messages";
 import { useStyles } from "./styles";
+
 export interface DiscountCategoriesProps extends ListProps, ListActions {
-  discount: SaleDetails_sale | VoucherDetails_voucher;
+  discount: SaleDetailsFragment | VoucherDetailsFragment;
   onCategoryAssign: () => void;
   onCategoryUnassign: (id: string) => void;
 }
@@ -57,7 +55,7 @@ const DiscountCategories: React.FC<DiscountCategoriesProps> = props => {
       <CardTitle
         title={intl.formatMessage(messages.discountCategoriesHeader)}
         toolbar={
-          <Button color="primary" onClick={onCategoryAssign}>
+          <Button onClick={onCategoryAssign}>
             <FormattedMessage {...messages.discountCategoriesButton} />
           </Button>
         }
@@ -137,13 +135,14 @@ const DiscountCategories: React.FC<DiscountCategoriesProps> = props => {
                   </TableCell>
                   <TableCell className={classes.colActions}>
                     <IconButton
+                      variant="secondary"
                       disabled={!category || disabled}
                       onClick={event => {
                         event.stopPropagation();
                         onCategoryUnassign(category.id);
                       }}
                     >
-                      <DeleteIcon color="primary" />
+                      <DeleteIcon />
                     </IconButton>
                   </TableCell>
                 </TableRow>

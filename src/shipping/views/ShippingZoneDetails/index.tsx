@@ -2,11 +2,23 @@ import { DialogContentText } from "@material-ui/core";
 import ActionDialog from "@saleor/components/ActionDialog";
 import useAppChannel from "@saleor/components/AppLayout/AppChannelContext";
 import NotFoundPage from "@saleor/components/NotFoundPage";
-import { DEFAULT_INITIAL_SEARCH_DATA } from "@saleor/config";
-import { PAGINATE_BY } from "@saleor/config";
+import { DEFAULT_INITIAL_SEARCH_DATA, PAGINATE_BY } from "@saleor/config";
+import {
+  CountryCode,
+  ShippingMethodTypeEnum,
+  ShippingZoneUpdateInput,
+  useDeleteShippingRateMutation,
+  useDeleteShippingZoneMutation,
+  useShippingZoneQuery,
+  useShopCountriesQuery,
+  useUpdateMetadataMutation,
+  useUpdatePrivateMetadataMutation,
+  useUpdateShippingZoneMutation,
+  useWarehouseCreateMutation
+} from "@saleor/graphql";
+import { useLocalPaginationState } from "@saleor/hooks/useLocalPaginator";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
-import { createPaginationState } from "@saleor/hooks/usePaginator";
 import useShop from "@saleor/hooks/useShop";
 import { commonMessages } from "@saleor/intl";
 import { getById } from "@saleor/orders/components/OrderReturnPage/utils";
@@ -14,33 +26,27 @@ import useWarehouseSearch from "@saleor/searches/useWarehouseSearch";
 import DeleteShippingRateDialog from "@saleor/shipping/components/DeleteShippingRateDialog";
 import ShippingZoneAddWarehouseDialog from "@saleor/shipping/components/ShippingZoneAddWarehouseDialog";
 import ShippingZoneCountriesAssignDialog from "@saleor/shipping/components/ShippingZoneCountriesAssignDialog";
-import {
-  useShippingRateDelete,
-  useShippingZoneDelete,
-  useShippingZoneUpdate
-} from "@saleor/shipping/mutations";
 import { arrayDiff } from "@saleor/utils/arrays";
 import createDialogActionHandlers from "@saleor/utils/handlers/dialogActionHandlers";
 import createMetadataUpdateHandler from "@saleor/utils/handlers/metadataUpdateHandler";
-import { mapEdgesToItems } from "@saleor/utils/maps";
 import {
-  useMetadataUpdate,
-  usePrivateMetadataUpdate
-} from "@saleor/utils/metadata/updateMetadata";
-import { useWarehouseCreate } from "@saleor/warehouses/mutations";
+  mapCountriesToCountriesCodes,
+  mapEdgesToItems
+} from "@saleor/utils/maps";
+import { diff } from "fast-array-diff";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { findValueInEnum, getStringOrPlaceholder } from "../../../misc";
-import { CountryCode } from "../../../types/globalTypes";
-import ShippingZoneDetailsPage from "../../components/ShippingZoneDetailsPage";
-import { FormData } from "../../components/ShippingZoneDetailsPage/types";
-import { useShippingZone } from "../../queries";
 import {
-  shippingPriceRatesEditUrl,
-  shippingPriceRatesUrl,
-  shippingWeightRatesEditUrl,
-  shippingWeightRatesUrl,
+  extractMutationErrors,
+  findValueInEnum,
+  getStringOrPlaceholder
+} from "../../../misc";
+import ShippingZoneDetailsPage from "../../components/ShippingZoneDetailsPage";
+import { ShippingZoneUpdateFormData } from "../../components/ShippingZoneDetailsPage/types";
+import {
+  shippingRateCreateUrl,
+  shippingRateEditUrl,
   shippingZonesListUrl,
   shippingZoneUrl,
   ShippingZoneUrlDialog,
@@ -61,7 +67,18 @@ const ShippingZoneDetails: React.FC<ShippingZoneDetailsProps> = ({
   const intl = useIntl();
   const shop = useShop();
 
-  const paginationState = createPaginationState(PAGINATE_BY, params);
+  const {
+    data: restWorldCountries,
+    refetch: refetchRestWorldCountries
+  } = useShopCountriesQuery({
+    variables: {
+      filter: {
+        attachedToShippingZones: false
+      }
+    }
+  });
+
+  const [paginationState] = useLocalPaginationState(PAGINATE_BY);
 
   const { result: searchWarehousesOpts, loadMore, search } = useWarehouseSearch(
     {
@@ -69,7 +86,7 @@ const ShippingZoneDetails: React.FC<ShippingZoneDetailsProps> = ({
     }
   );
 
-  const { data, loading } = useShippingZone({
+  const { data, loading } = useShippingZoneQuery({
     displayLoader: true,
     variables: { id, ...paginationState }
   });
@@ -81,7 +98,10 @@ const ShippingZoneDetails: React.FC<ShippingZoneDetailsProps> = ({
   >(navigate, params => shippingZoneUrl(id, params), params);
   const rate = data?.shippingZone?.shippingMethods?.find(getById(params.id));
 
-  const [deleteShippingRate, deleteShippingRateOpts] = useShippingRateDelete({
+  const [
+    deleteShippingRate,
+    deleteShippingRateOpts
+  ] = useDeleteShippingRateMutation({
     onCompleted: data => {
       if (data.shippingPriceDelete.errors.length === 0) {
         notify({
@@ -93,7 +113,10 @@ const ShippingZoneDetails: React.FC<ShippingZoneDetailsProps> = ({
     }
   });
 
-  const [deleteShippingZone, deleteShippingZoneOpts] = useShippingZoneDelete({
+  const [
+    deleteShippingZone,
+    deleteShippingZoneOpts
+  ] = useDeleteShippingZoneMutation({
     onCompleted: data => {
       if (data.shippingZoneDelete.errors.length === 0) {
         notify({
@@ -105,7 +128,10 @@ const ShippingZoneDetails: React.FC<ShippingZoneDetailsProps> = ({
     }
   });
 
-  const [updateShippingZone, updateShippingZoneOpts] = useShippingZoneUpdate({
+  const [
+    updateShippingZone,
+    updateShippingZoneOpts
+  ] = useUpdateShippingZoneMutation({
     onCompleted: data => {
       if (data.shippingZoneUpdate.errors.length === 0) {
         notify({
@@ -113,11 +139,12 @@ const ShippingZoneDetails: React.FC<ShippingZoneDetailsProps> = ({
           text: intl.formatMessage(commonMessages.savedChanges)
         });
         closeModal();
+        refetchRestWorldCountries();
       }
     }
   });
 
-  const [createWarehouse, createWarehouseOpts] = useWarehouseCreate({
+  const [createWarehouse, createWarehouseOpts] = useWarehouseCreateMutation({
     onCompleted: data => {
       if (data.createWarehouse.errors.length === 0) {
         notify({
@@ -129,11 +156,13 @@ const ShippingZoneDetails: React.FC<ShippingZoneDetailsProps> = ({
     }
   });
 
-  const [updateMetadata] = useMetadataUpdate({});
-  const [updatePrivateMetadata] = usePrivateMetadataUpdate({});
+  const [updateMetadata] = useUpdateMetadataMutation({});
+  const [updatePrivateMetadata] = useUpdatePrivateMetadataMutation({});
 
-  const updateData = async (submitData: FormData) => {
-    const warehouseDiff = arrayDiff(
+  const getParsedUpdateInput = (
+    submitData: ShippingZoneUpdateFormData
+  ): ShippingZoneUpdateInput => {
+    const warehouseDiff = diff(
       data.shippingZone.warehouses.map(warehouse => warehouse.id),
       submitData.warehouses
     );
@@ -143,22 +172,25 @@ const ShippingZoneDetails: React.FC<ShippingZoneDetailsProps> = ({
       submitData.channels
     );
 
-    const result = await updateShippingZone({
-      variables: {
-        id,
-        input: {
-          addWarehouses: warehouseDiff.added,
-          addChannels: channelsDiff.added,
-          removeChannels: channelsDiff.removed,
-          description: submitData.description,
-          name: submitData.name,
-          removeWarehouses: warehouseDiff.removed
-        }
-      }
-    });
-
-    return result.data.shippingZoneUpdate.errors;
+    return {
+      addWarehouses: warehouseDiff.added,
+      addChannels: channelsDiff.added,
+      removeChannels: channelsDiff.removed,
+      description: submitData.description,
+      name: submitData.name,
+      removeWarehouses: warehouseDiff.removed
+    };
   };
+
+  const updateData = async (submitData: ShippingZoneUpdateFormData) =>
+    extractMutationErrors(
+      updateShippingZone({
+        variables: {
+          id,
+          input: getParsedUpdateInput(submitData)
+        }
+      })
+    );
 
   const handleSubmit = createMetadataUpdateHandler(
     data?.shippingZone,
@@ -184,10 +216,12 @@ const ShippingZoneDetails: React.FC<ShippingZoneDetailsProps> = ({
           })
         }
         onDelete={() => openModal("remove")}
-        onPriceRateAdd={() => navigate(shippingPriceRatesUrl(id))}
-        onPriceRateEdit={rateId =>
-          navigate(shippingPriceRatesEditUrl(id, rateId))
+        onPriceRateAdd={() =>
+          navigate(
+            shippingRateCreateUrl(id, { type: ShippingMethodTypeEnum.PRICE })
+          )
         }
+        onPriceRateEdit={rateId => navigate(shippingRateEditUrl(id, rateId))}
         onRateRemove={rateId =>
           openModal("remove-rate", {
             id: rateId
@@ -196,10 +230,12 @@ const ShippingZoneDetails: React.FC<ShippingZoneDetailsProps> = ({
         onSubmit={handleSubmit}
         allChannels={availableChannels}
         onWarehouseAdd={() => openModal("add-warehouse")}
-        onWeightRateAdd={() => navigate(shippingWeightRatesUrl(id))}
-        onWeightRateEdit={rateId =>
-          navigate(shippingWeightRatesEditUrl(id, rateId))
+        onWeightRateAdd={() =>
+          navigate(
+            shippingRateCreateUrl(id, { type: ShippingMethodTypeEnum.WEIGHT })
+          )
         }
+        onWeightRateEdit={rateId => navigate(shippingRateEditUrl(id, rateId))}
         saveButtonBarState={updateShippingZoneOpts.status}
         shippingZone={data?.shippingZone}
         warehouses={mapEdgesToItems(searchWarehousesOpts?.data?.search) || []}
@@ -257,18 +293,20 @@ const ShippingZoneDetails: React.FC<ShippingZoneDetailsProps> = ({
       <ShippingZoneCountriesAssignDialog
         confirmButtonState={updateShippingZoneOpts.status}
         countries={shop?.countries || []}
-        initial={
-          data?.shippingZone?.countries.map(country => country.code) || []
+        restWorldCountries={
+          mapCountriesToCountriesCodes(restWorldCountries?.shop?.countries) ||
+          []
         }
-        isDefault={data?.shippingZone?.default}
+        initial={
+          mapCountriesToCountriesCodes(data?.shippingZone?.countries) || []
+        }
         onClose={closeModal}
         onConfirm={formData =>
           updateShippingZone({
             variables: {
               id,
               input: {
-                countries: formData.countries,
-                default: formData.restOfTheWorld
+                countries: formData.countries
               }
             }
           })
@@ -292,14 +330,18 @@ const ShippingZoneDetails: React.FC<ShippingZoneDetailsProps> = ({
         }
         open={params.action === "unassign-country"}
         title={intl.formatMessage({
-          defaultMessage: "Delete from Shipping Zone",
+          defaultMessage: "Remove from Shipping Zone",
           description: "unassign country, dialog header"
         })}
         variant="delete"
+        confirmButtonLabel={intl.formatMessage({
+          defaultMessage: "Remove and save",
+          description: "remove country from shipping zone and save, button"
+        })}
       >
         <DialogContentText>
           <FormattedMessage
-            defaultMessage="Are you sure you want to delete {countryName} from this shipping zone?"
+            defaultMessage="Are you sure you want to remove {countryName} from this shipping zone?"
             description="unassign country"
             values={{
               countryName: (

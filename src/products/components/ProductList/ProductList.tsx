@@ -5,8 +5,11 @@ import {
   TableRow,
   Typography
 } from "@material-ui/core";
-import AvailabilityStatusLabel from "@saleor/components/AvailabilityStatusLabel";
 import { ChannelsAvailabilityDropdown } from "@saleor/components/ChannelsAvailabilityDropdown";
+import {
+  getChannelAvailabilityColor,
+  getChannelAvailabilityLabel
+} from "@saleor/components/ChannelsAvailabilityDropdown/utils";
 import Checkbox from "@saleor/components/Checkbox";
 import Date from "@saleor/components/Date";
 import MoneyRange from "@saleor/components/MoneyRange";
@@ -17,27 +20,34 @@ import { AVATAR_MARGIN } from "@saleor/components/TableCellAvatar/Avatar";
 import TableCellHeader from "@saleor/components/TableCellHeader";
 import TableHead from "@saleor/components/TableHead";
 import TablePagination from "@saleor/components/TablePagination";
+import TooltipTableCellHeader from "@saleor/components/TooltipTableCellHeader";
+import { commonTooltipMessages } from "@saleor/components/TooltipTableCellHeader/messages";
 import { ProductListColumns } from "@saleor/config";
-import { makeStyles } from "@saleor/macaw-ui";
+import { GridAttributesQuery, ProductListQuery } from "@saleor/graphql";
+import { makeStyles, Pill } from "@saleor/macaw-ui";
 import { maybe, renderCollection } from "@saleor/misc";
 import {
   getAttributeIdFromColumnValue,
   isAttributeColumnValue
 } from "@saleor/products/components/ProductListPage/utils";
-import { GridAttributes_grid_edges_node } from "@saleor/products/types/GridAttributes";
-import { ProductList_products_edges_node } from "@saleor/products/types/ProductList";
 import { ProductListUrlSortField } from "@saleor/products/urls";
 import { canBeSorted } from "@saleor/products/views/ProductList/sort";
-import { ChannelProps, ListActions, ListProps, SortPage } from "@saleor/types";
+import {
+  ChannelProps,
+  ListActions,
+  ListProps,
+  RelayToFlat,
+  SortPage
+} from "@saleor/types";
 import TDisplayColumn, {
   DisplayColumnProps
 } from "@saleor/utils/columns/DisplayColumn";
 import { getArrowDirection } from "@saleor/utils/sort";
 import classNames from "classnames";
 import React from "react";
-import { FormattedMessage } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
-import { columnsMessages, messages } from "./messages";
+import { columnsMessages } from "./messages";
 
 const useStyles = makeStyles(
   theme => ({
@@ -111,16 +121,14 @@ interface ProductListProps
     SortPage<ProductListUrlSortField>,
     ChannelProps {
   activeAttributeSortId: string;
-  gridAttributes: GridAttributes_grid_edges_node[];
-  products: ProductList_products_edges_node[];
+  gridAttributes: RelayToFlat<GridAttributesQuery["grid"]>;
+  products: RelayToFlat<ProductListQuery["products"]>;
   loading: boolean;
-  channelsCount: number;
 }
 
 export const ProductList: React.FC<ProductListProps> = props => {
   const {
     activeAttributeSortId,
-    channelsCount,
     settings,
     disabled,
     isChecked,
@@ -137,20 +145,23 @@ export const ProductList: React.FC<ProductListProps> = props => {
     onUpdateListSettings,
     onRowClick,
     onSort,
-    selectedChannelId
+    selectedChannelId,
+    filterDependency
   } = props;
 
   const classes = useStyles(props);
+  const intl = useIntl();
   const gridAttributesFromSettings = settings.columns.filter(
     isAttributeColumnValue
   );
-  const numberOfColumns = 2 + settings.columns.length;
+  const numberOfColumns =
+    (products?.length === 0 ? 1 : 2) + settings.columns.length;
 
   return (
     <div className={classes.tableContainer}>
       <ResponsiveTable className={classes.table}>
         <colgroup>
-          <col />
+          {products?.length !== 0 && <col />}
           <col className={classes.colName} />
           <DisplayColumn column="productType" displayColumns={settings.columns}>
             <col className={classes.colType} />
@@ -180,7 +191,7 @@ export const ProductList: React.FC<ProductListProps> = props => {
           toolbar={toolbar}
         >
           <TableCellHeader
-            data-test-id="colNameHeader"
+            data-test-id="col-name-header"
             arrowPosition="right"
             className={classNames(classes.colName, {
               [classes.colNameFixed]: settings.columns.length > 4
@@ -198,7 +209,7 @@ export const ProductList: React.FC<ProductListProps> = props => {
           </TableCellHeader>
           <DisplayColumn column="productType" displayColumns={settings.columns}>
             <TableCellHeader
-              data-test-id="colTypeHeader"
+              data-test-id="col-type-header"
               className={classes.colType}
               direction={
                 sort.sort === ProductListUrlSortField.productType
@@ -214,8 +225,8 @@ export const ProductList: React.FC<ProductListProps> = props => {
             column="availability"
             displayColumns={settings.columns}
           >
-            <TableCellHeader
-              data-test-id="colAvailabilityHeader"
+            <TooltipTableCellHeader
+              data-test-id="col-availability-header"
               className={classes.colPublished}
               direction={
                 sort.sort === ProductListUrlSortField.status
@@ -229,9 +240,13 @@ export const ProductList: React.FC<ProductListProps> = props => {
                   !!selectedChannelId
                 )
               }
+              tooltip={intl.formatMessage(
+                commonTooltipMessages.noFilterSelected,
+                { filterName: filterDependency.label }
+              )}
             >
               <FormattedMessage {...columnsMessages.availability} />
-            </TableCellHeader>
+            </TooltipTableCellHeader>
           </DisplayColumn>
           {gridAttributesFromSettings.map(gridAttributeFromSettings => {
             const attributeId = getAttributeIdFromColumnValue(
@@ -264,7 +279,7 @@ export const ProductList: React.FC<ProductListProps> = props => {
           })}
           <DisplayColumn column="date" displayColumns={settings.columns}>
             <TableCellHeader
-              data-test-id="colDateHeader"
+              data-test-id="col-date-header"
               className={classes.colDate}
               direction={
                 sort.sort === ProductListUrlSortField.date
@@ -277,8 +292,8 @@ export const ProductList: React.FC<ProductListProps> = props => {
             </TableCellHeader>
           </DisplayColumn>
           <DisplayColumn column="price" displayColumns={settings.columns}>
-            <TableCellHeader
-              data-test-id="colPriceHeader"
+            <TooltipTableCellHeader
+              data-test-id="col-price-header"
               className={classes.colPrice}
               direction={
                 sort.sort === ProductListUrlSortField.price
@@ -290,9 +305,13 @@ export const ProductList: React.FC<ProductListProps> = props => {
               disabled={
                 !canBeSorted(ProductListUrlSortField.price, !!selectedChannelId)
               }
+              tooltip={intl.formatMessage(
+                commonTooltipMessages.noFilterSelected,
+                { filterName: filterDependency.label }
+              )}
             >
               <FormattedMessage {...columnsMessages.price} />
-            </TableCellHeader>
+            </TooltipTableCellHeader>
           </DisplayColumn>
         </TableHead>
         <TableFooter>
@@ -326,8 +345,7 @@ export const ProductList: React.FC<ProductListProps> = props => {
                   key={product ? product.id : "skeleton"}
                   onClick={product && onRowClick(product.id)}
                   className={classes.link}
-                  data-test="id"
-                  data-test-id={product ? product?.id : "skeleton"}
+                  data-test-id={"id-" + (product ? product?.id : "skeleton")}
                 >
                   <TableCell padding="checkbox">
                     <Checkbox
@@ -342,7 +360,7 @@ export const ProductList: React.FC<ProductListProps> = props => {
                   >
                     {product?.productType ? (
                       <div className={classes.colNameWrapper}>
-                        <span data-test="name">{product.name}</span>
+                        <span data-test-id="name">{product.name}</span>
                         {product?.productType && (
                           <Typography variant="caption">
                             {product.productType.hasVariants ? (
@@ -369,7 +387,7 @@ export const ProductList: React.FC<ProductListProps> = props => {
                   >
                     <TableCell
                       className={classes.colType}
-                      data-test="product-type"
+                      data-test-id="product-type"
                     >
                       {product?.productType?.name || <Skeleton />}
                     </TableCell>
@@ -380,32 +398,31 @@ export const ProductList: React.FC<ProductListProps> = props => {
                   >
                     <TableCell
                       className={classes.colPublished}
-                      data-test="availability"
+                      data-test-id="availability"
                       data-test-availability={
                         !!product?.channelListings?.length
                       }
                     >
-                      {(!product && <Skeleton />) ||
-                        (!product?.channelListings?.length && "-") ||
-                        (product?.channelListings !== undefined && channel ? (
-                          <AvailabilityStatusLabel
-                            channel={channel}
-                            messages={messages}
+                      {(product &&
+                        (channel ? (
+                          <Pill
+                            label={intl.formatMessage(
+                              getChannelAvailabilityLabel(channel)
+                            )}
+                            color={getChannelAvailabilityColor(channel)}
                           />
                         ) : (
                           <ChannelsAvailabilityDropdown
-                            allChannelsCount={channelsCount}
                             channels={product?.channelListings}
-                            showStatus
                           />
-                        ))}
+                        ))) ?? <Skeleton />}
                     </TableCell>
                   </DisplayColumn>
                   {gridAttributesFromSettings.map(gridAttribute => (
                     <TableCell
                       className={classes.colAttribute}
                       key={gridAttribute}
-                      data-test="attribute"
+                      data-test-id="attribute"
                       data-test-attribute={getAttributeIdFromColumnValue(
                         gridAttribute
                       )}
@@ -429,7 +446,7 @@ export const ProductList: React.FC<ProductListProps> = props => {
                     column="date"
                     displayColumns={settings.columns}
                   >
-                    <TableCell className={classes.colDate} data-test="date">
+                    <TableCell className={classes.colDate} data-test-id="date">
                       {product?.updatedAt ? (
                         <Date date={product.updatedAt} />
                       ) : (
@@ -441,7 +458,10 @@ export const ProductList: React.FC<ProductListProps> = props => {
                     column="price"
                     displayColumns={settings.columns}
                   >
-                    <TableCell className={classes.colPrice} data-test="price">
+                    <TableCell
+                      className={classes.colPrice}
+                      data-test-id="price"
+                    >
                       {product?.channelListings ? (
                         <MoneyRange
                           from={channel?.pricing?.priceRange?.start?.net}

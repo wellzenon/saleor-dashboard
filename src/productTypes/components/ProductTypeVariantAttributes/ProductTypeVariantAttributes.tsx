@@ -1,12 +1,4 @@
-import {
-  Button,
-  Card,
-  IconButton,
-  TableCell,
-  TableRow,
-  Tooltip
-} from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
+import { Card, TableCell, TableRow, Tooltip } from "@material-ui/core";
 import HelpOutline from "@material-ui/icons/HelpOutline";
 import CardTitle from "@saleor/components/CardTitle";
 import Checkbox from "@saleor/components/Checkbox";
@@ -17,18 +9,13 @@ import {
   SortableTableRow
 } from "@saleor/components/SortableTable";
 import TableHead from "@saleor/components/TableHead";
-import { makeStyles } from "@saleor/macaw-ui";
+import { ProductAttributeType, ProductTypeDetailsQuery } from "@saleor/graphql";
+import { Button, DeleteIcon, IconButton, makeStyles } from "@saleor/macaw-ui";
 import { maybe, renderCollection, stopPropagation } from "@saleor/misc";
 import { ListActions, ReorderAction } from "@saleor/types";
-import { ProductAttributeType } from "@saleor/types/globalTypes";
 import capitalize from "lodash/capitalize";
 import React, { useEffect } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
-import {
-  ProductTypeDetails_productType_assignedVariantAttributes,
-  ProductTypeDetails_productType_variantAttributes
-} from "../../types/ProductTypeDetails";
 
 const useStyles = makeStyles(
   {
@@ -72,7 +59,7 @@ const useStyles = makeStyles(
 );
 
 interface ProductTypeVariantAttributesProps extends ListActions {
-  assignedVariantAttributes: ProductTypeDetails_productType_assignedVariantAttributes[];
+  assignedVariantAttributes: ProductTypeDetailsQuery["productType"]["assignedVariantAttributes"];
   disabled: boolean;
   type: string;
   testId?: string;
@@ -137,7 +124,7 @@ const ProductTypeVariantAttributes: React.FC<ProductTypeVariantAttributesProps> 
   }, []);
 
   return (
-    <Card data-test="variant-attributes">
+    <Card data-test-id="variant-attributes">
       <CardTitle
         title={intl.formatMessage({
           defaultMessage: "Variant Attributes",
@@ -146,8 +133,7 @@ const ProductTypeVariantAttributes: React.FC<ProductTypeVariantAttributesProps> 
         toolbar={
           <Button
             data-test-id={testId}
-            color="primary"
-            variant="text"
+            variant="tertiary"
             onClick={() => onAttributeAssign(ProductAttributeType[type])}
           >
             <FormattedMessage
@@ -172,9 +158,9 @@ const ProductTypeVariantAttributes: React.FC<ProductTypeVariantAttributesProps> 
             disabled={disabled}
             dragRows
             selected={selected}
-            items={
-              (assignedVariantAttributes as unknown) as ProductTypeDetails_productType_variantAttributes[]
-            }
+            items={assignedVariantAttributes?.map(
+              selectedAttribute => selectedAttribute.attribute
+            )}
             toggleAll={toggleAll}
             toolbar={toolbar}
           >
@@ -229,8 +215,7 @@ const ProductTypeVariantAttributes: React.FC<ProductTypeVariantAttributesProps> 
                   }
                   key={maybe(() => attribute.id)}
                   index={attributeIndex || 0}
-                  data-test="id"
-                  data-test-id={maybe(() => attribute.id)}
+                  data-test-id={"id-" + +maybe(() => attribute.id)}
                 >
                   <TableCell padding="checkbox">
                     <Checkbox
@@ -240,10 +225,10 @@ const ProductTypeVariantAttributes: React.FC<ProductTypeVariantAttributesProps> 
                       onChange={() => toggle(attribute.id)}
                     />
                   </TableCell>
-                  <TableCell className={classes.colName} data-test="name">
+                  <TableCell className={classes.colName} data-test-id="name">
                     {attribute.name ?? <Skeleton />}
                   </TableCell>
-                  <TableCell className={classes.colSlug} data-test="slug">
+                  <TableCell className={classes.colSlug} data-test-id="slug">
                     {maybe(() => attribute.slug) ? (
                       attribute.slug
                     ) : (
@@ -252,10 +237,11 @@ const ProductTypeVariantAttributes: React.FC<ProductTypeVariantAttributesProps> 
                   </TableCell>
                   <TableCell
                     className={classes.colVariant}
-                    data-test="variant-selection"
+                    data-test-id="variant-selection"
                   >
                     <div className={classes.colVariantContent}>
                       <Checkbox
+                        data-test-id="variant-selection-checkbox"
                         checked={isSelected}
                         disabled={disabled || variantSelectionDisabled}
                         disableClickPropagation
@@ -287,6 +273,7 @@ const ProductTypeVariantAttributes: React.FC<ProductTypeVariantAttributesProps> 
                   </TableCell>
                   <TableCell className={classes.colAction}>
                     <IconButton
+                      data-test-id="delete-icon"
                       onClick={stopPropagation(() =>
                         onAttributeUnassign(attribute.id)
                       )}

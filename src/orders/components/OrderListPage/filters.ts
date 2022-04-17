@@ -1,10 +1,15 @@
 import { IFilter } from "@saleor/components/Filter";
 import { MultiAutocompleteChoiceType } from "@saleor/components/MultiAutocompleteSelectField";
-import { commonMessages } from "@saleor/intl";
-import { orderStatusMessages } from "@saleor/misc";
-import { FilterOpts, MinMax } from "@saleor/types";
-import { OrderStatusFilter } from "@saleor/types/globalTypes";
+import { OrderStatusFilter, PaymentChargeStatusEnum } from "@saleor/graphql";
 import {
+  commonMessages,
+  commonStatusMessages,
+  orderStatusMessages,
+  paymentStatusMessages
+} from "@saleor/intl";
+import { FilterOpts, MinMax } from "@saleor/types";
+import {
+  createBooleanField,
   createDateField,
   createOptionsField,
   createTextField
@@ -15,17 +20,38 @@ export enum OrderFilterKeys {
   created = "created",
   customer = "customer",
   status = "status",
-  channel = "channel"
+  paymentStatus = "paymentStatus",
+  clickAndCollect = "clickAndCollect",
+  preorder = "preorder",
+  channel = "channel",
+  giftCard = "giftCard"
+}
+
+export enum OrderFilterGiftCard {
+  bought = "bought",
+  paid = "paid"
 }
 
 export interface OrderListFilterOpts {
   created: FilterOpts<MinMax>;
   customer: FilterOpts<string>;
   status: FilterOpts<OrderStatusFilter[]>;
+  paymentStatus: FilterOpts<PaymentChargeStatusEnum[]>;
   channel?: FilterOpts<MultiAutocompleteChoiceType[]>;
+  clickAndCollect: FilterOpts<boolean>;
+  preorder: FilterOpts<boolean>;
+  giftCard: FilterOpts<OrderFilterGiftCard[]>;
 }
 
 const messages = defineMessages({
+  preorder: {
+    defaultMessage: "Preorder",
+    description: "is preorder"
+  },
+  clickAndCollect: {
+    defaultMessage: "Click&Collect",
+    description: "click and collect"
+  },
   channel: {
     defaultMessage: "Channel",
     description: "order"
@@ -37,6 +63,18 @@ const messages = defineMessages({
   placed: {
     defaultMessage: "Created",
     description: "order"
+  },
+  giftCard: {
+    defaultMessage: "Gift Card",
+    description: "order"
+  },
+  giftCardPaid: {
+    defaultMessage: "Paid with Gift Card",
+    description: "order"
+  },
+  giftCardOrdered: {
+    defaultMessage: "Gift Card ordered",
+    description: "order"
   }
 });
 
@@ -45,6 +83,30 @@ export function createFilterStructure(
   opts: OrderListFilterOpts
 ): IFilter<OrderFilterKeys> {
   return [
+    {
+      ...createBooleanField(
+        OrderFilterKeys.clickAndCollect,
+        intl.formatMessage(messages.clickAndCollect),
+        opts.clickAndCollect.value,
+        {
+          negative: intl.formatMessage(commonMessages.no),
+          positive: intl.formatMessage(commonMessages.yes)
+        }
+      ),
+      active: opts.clickAndCollect.active
+    },
+    {
+      ...createBooleanField(
+        OrderFilterKeys.preorder,
+        intl.formatMessage(messages.preorder),
+        opts.preorder.value,
+        {
+          negative: intl.formatMessage(commonMessages.no),
+          positive: intl.formatMessage(commonMessages.yes)
+        }
+      ),
+      active: opts.preorder.active
+    },
     {
       ...createTextField(
         OrderFilterKeys.customer,
@@ -63,13 +125,32 @@ export function createFilterStructure(
     },
     {
       ...createOptionsField(
+        OrderFilterKeys.giftCard,
+        intl.formatMessage(messages.giftCard),
+        opts.giftCard.value,
+        true,
+        [
+          {
+            label: intl.formatMessage(messages.giftCardOrdered),
+            value: OrderFilterGiftCard.bought
+          },
+          {
+            label: intl.formatMessage(messages.giftCardPaid),
+            value: OrderFilterGiftCard.paid
+          }
+        ]
+      ),
+      active: opts.giftCard.active
+    },
+    {
+      ...createOptionsField(
         OrderFilterKeys.status,
         intl.formatMessage(commonMessages.status),
         opts.status.value,
         true,
         [
           {
-            label: intl.formatMessage(orderStatusMessages.cancelled),
+            label: intl.formatMessage(commonStatusMessages.cancelled),
             value: OrderStatusFilter.CANCELED
           },
           {
@@ -91,10 +172,57 @@ export function createFilterStructure(
           {
             label: intl.formatMessage(orderStatusMessages.readyToFulfill),
             value: OrderStatusFilter.READY_TO_FULFILL
+          },
+          {
+            label: intl.formatMessage(orderStatusMessages.unconfirmed),
+            value: OrderStatusFilter.UNCONFIRMED
           }
         ]
       ),
       active: opts.status.active
+    },
+    {
+      ...createOptionsField(
+        OrderFilterKeys.paymentStatus,
+        intl.formatMessage(commonMessages.paymentStatus),
+        opts.paymentStatus.value,
+        true,
+        [
+          {
+            label: intl.formatMessage(paymentStatusMessages.paid),
+            value: PaymentChargeStatusEnum.FULLY_CHARGED
+          },
+          {
+            label: intl.formatMessage(paymentStatusMessages.partiallyPaid),
+            value: PaymentChargeStatusEnum.PARTIALLY_CHARGED
+          },
+          {
+            label: intl.formatMessage(paymentStatusMessages.unpaid),
+            value: PaymentChargeStatusEnum.NOT_CHARGED
+          },
+          {
+            label: intl.formatMessage(paymentStatusMessages.refunded),
+            value: PaymentChargeStatusEnum.FULLY_REFUNDED
+          },
+          {
+            label: intl.formatMessage(paymentStatusMessages.partiallyRefunded),
+            value: PaymentChargeStatusEnum.PARTIALLY_REFUNDED
+          },
+          {
+            label: intl.formatMessage(commonStatusMessages.cancelled),
+            value: PaymentChargeStatusEnum.CANCELLED
+          },
+          {
+            label: intl.formatMessage(paymentStatusMessages.pending),
+            value: PaymentChargeStatusEnum.PENDING
+          },
+          {
+            label: intl.formatMessage(paymentStatusMessages.refused),
+            value: PaymentChargeStatusEnum.REFUSED
+          }
+        ]
+      ),
+      active: opts.paymentStatus.active
     },
     ...(opts?.channel?.value.length
       ? [

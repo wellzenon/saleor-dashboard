@@ -1,30 +1,33 @@
-import { GiftCardError } from "@saleor/fragments/types/GiftCardError";
-import { GiftCardErrorCode } from "@saleor/types/globalTypes";
-import { getCommonFormFieldErrorMessage } from "@saleor/utils/errors/common";
+import { GiftCardErrorCode, GiftCardErrorFragment } from "@saleor/graphql";
+import commonErrorMessages, {
+  getCommonFormFieldErrorMessage
+} from "@saleor/utils/errors/common";
 import { defineMessages, IntlShape } from "react-intl";
 
 export const giftCardUpdateDetailsCardMessages = defineMessages({
   title: {
     defaultMessage: "Details",
-    description: "GiftCardUpdateDetailsCard title"
+    description: "title"
   }
 });
 
 const giftCardErrorMessages = defineMessages({
   notFound: {
     defaultMessage: "Couldn't find gift card",
-    description: "giftCardErrorMessages not found"
+    description: "gift card not found message"
   }
 });
 
 export function getGiftCardErrorMessage(
-  error: Omit<GiftCardError, "__typename"> | undefined,
+  error: Omit<GiftCardErrorFragment, "__typename" | "message"> | undefined,
   intl: IntlShape
 ): string {
   if (error) {
     switch (error.code) {
       case GiftCardErrorCode.NOT_FOUND:
         return intl.formatMessage(giftCardErrorMessages.notFound);
+      case GiftCardErrorCode.INVALID:
+        return intl.formatMessage(commonErrorMessages.invalid);
     }
   }
 

@@ -7,31 +7,30 @@ import { AttributeInput } from "@saleor/components/Attributes";
 import NotFoundPage from "@saleor/components/NotFoundPage";
 import { WindowTitle } from "@saleor/components/WindowTitle";
 import { DEFAULT_INITIAL_SEARCH_DATA } from "@saleor/config";
-import { useFileUploadMutation } from "@saleor/files/mutations";
+import {
+  useFileUploadMutation,
+  useProductVariantCreateDataQuery,
+  useProductVariantReorderMutation,
+  useUpdateMetadataMutation,
+  useUpdatePrivateMetadataMutation,
+  useVariantCreateMutation,
+  useWarehouseListQuery
+} from "@saleor/graphql";
 import useNavigator from "@saleor/hooks/useNavigator";
+import useNotifier from "@saleor/hooks/useNotifier";
 import useShop from "@saleor/hooks/useShop";
 import usePageSearch from "@saleor/searches/usePageSearch";
 import useProductSearch from "@saleor/searches/useProductSearch";
 import useAttributeValueSearchHandler from "@saleor/utils/handlers/attributeValueSearchHandler";
 import createMetadataCreateHandler from "@saleor/utils/handlers/metadataCreateHandler";
 import { mapEdgesToItems } from "@saleor/utils/maps";
-import {
-  useMetadataUpdate,
-  usePrivateMetadataUpdate
-} from "@saleor/utils/metadata/updateMetadata";
-import { useWarehouseList } from "@saleor/warehouses/queries";
 import { warehouseAddPath } from "@saleor/warehouses/urls";
 import React from "react";
 import { useIntl } from "react-intl";
 
-import { weight } from "../../misc";
+import { getMutationErrors, weight } from "../../misc";
 import ProductVariantCreatePage from "../components/ProductVariantCreatePage";
 import { ProductVariantCreateData } from "../components/ProductVariantCreatePage/form";
-import {
-  useProductVariantReorderMutation,
-  useVariantCreateMutation
-} from "../mutations";
-import { useProductVariantCreateQuery } from "../queries";
 import {
   productListUrl,
   productUrl,
@@ -39,6 +38,7 @@ import {
   ProductVariantAddUrlQueryParams,
   productVariantEditUrl
 } from "../urls";
+import { variantCreateMessages as messages } from "./messages";
 import { createVariantReorderHandler } from "./ProductUpdate/handlers";
 
 interface ProductVariantCreateProps {
@@ -51,16 +51,18 @@ export const ProductVariant: React.FC<ProductVariantCreateProps> = ({
   params
 }) => {
   const navigate = useNavigator();
+  const notify = useNotifier();
+
   const shop = useShop();
   const intl = useIntl();
-  const warehouses = useWarehouseList({
+  const warehouses = useWarehouseListQuery({
     displayLoader: true,
     variables: {
       first: 50
     }
   });
 
-  const { data, loading: productLoading } = useProductVariantCreateQuery({
+  const { data, loading: productLoading } = useProductVariantCreateDataQuery({
     displayLoader: true,
     variables: {
       id: productId,
@@ -72,10 +74,22 @@ export const ProductVariant: React.FC<ProductVariantCreateProps> = ({
 
   const product = data?.product;
 
-  const [variantCreate, variantCreateResult] = useVariantCreateMutation({});
+  const [variantCreate, variantCreateResult] = useVariantCreateMutation({
+    onCompleted: data => {
+      const variantId = data.productVariantCreate.productVariant.id;
 
-  const [updateMetadata] = useMetadataUpdate({});
-  const [updatePrivateMetadata] = usePrivateMetadataUpdate({});
+      notify({
+        status: "success",
+        text: intl.formatMessage(messages.variantCreatedSuccess)
+      });
+      navigate(productVariantEditUrl(productId, variantId), {
+        resetScroll: true
+      });
+    }
+  });
+
+  const [updateMetadata] = useUpdateMetadataMutation({});
+  const [updatePrivateMetadata] = useUpdatePrivateMetadataMutation({});
 
   if (product === null) {
     return <NotFoundPage onBack={() => navigate(productListUrl())} />;
@@ -119,6 +133,8 @@ export const ProductVariant: React.FC<ProductVariantCreateProps> = ({
           })),
           trackInventory: true,
           weight: weight(formData.weight),
+          quantityLimitPerCustomer:
+            Number(formData.quantityLimitPerCustomer) || null,
           preorder: formData.isPreorder
             ? {
                 globalThreshold: formData.globalThreshold
@@ -126,15 +142,16 @@ export const ProductVariant: React.FC<ProductVariantCreateProps> = ({
                   : null,
                 endDate: formData.preorderEndDateTime || null
               }
-            : null
+            : undefined
         },
         firstValues: 10
       }
     });
-    const id = result.data?.productVariantCreate?.productVariant?.id;
+    const id = result.data?.productVariantCreate?.productVariant?.id || null;
 
-    return id || null;
+    return { id, errors: getMutationErrors(result) };
   };
+
   const handleSubmit = createMetadataCreateHandler(
     handleCreate,
     updateMetadata,

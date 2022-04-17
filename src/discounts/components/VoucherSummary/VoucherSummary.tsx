@@ -7,18 +7,18 @@ import Hr from "@saleor/components/Hr";
 import Money from "@saleor/components/Money";
 import Percent from "@saleor/components/Percent";
 import Skeleton from "@saleor/components/Skeleton";
+import { DiscountValueTypeEnum, VoucherDetailsFragment } from "@saleor/graphql";
 import { commonMessages } from "@saleor/intl";
 import { ChannelProps } from "@saleor/types";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { maybe } from "../../../misc";
-import { DiscountValueTypeEnum } from "../../../types/globalTypes";
 import { translateVoucherTypes } from "../../translations";
-import { VoucherDetails_voucher } from "../../types/VoucherDetails";
+import useStyles from "./styles";
 
 export interface VoucherSummaryProps extends ChannelProps {
-  voucher: VoucherDetails_voucher;
+  voucher: VoucherDetailsFragment;
 }
 
 const VoucherSummary: React.FC<VoucherSummaryProps> = ({
@@ -26,6 +26,7 @@ const VoucherSummary: React.FC<VoucherSummaryProps> = ({
   voucher
 }) => {
   const intl = useIntl();
+  const classes = useStyles();
 
   const translatedVoucherTypes = translateVoucherTypes(intl);
   const channel = voucher?.channelListings?.find(
@@ -39,7 +40,7 @@ const VoucherSummary: React.FC<VoucherSummaryProps> = ({
         <Typography variant="caption">
           <FormattedMessage defaultMessage="Code" description="voucher code" />
         </Typography>
-        <Typography>
+        <Typography className={classes.ellipsis}>
           {maybe<React.ReactNode>(() => voucher.code, <Skeleton />)}
         </Typography>
         <FormSpacer />

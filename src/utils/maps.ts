@@ -1,13 +1,16 @@
-import { ShopInfo_shop_countries } from "@saleor/components/Shop/types/ShopInfo";
+import { MultiAutocompleteChoiceType } from "@saleor/components/MultiAutocompleteSelectField";
 import {
   ChoiceValue,
   SingleAutocompleteChoiceType
 } from "@saleor/components/SingleAutocompleteSelectField";
-import { MetadataItem } from "@saleor/fragments/types/MetadataItem";
+import {
+  CountryWithCodeFragment,
+  MetadataInput,
+  MetadataItemFragment,
+  SearchPagesQuery
+} from "@saleor/graphql";
 import { getFullName } from "@saleor/misc";
-import { SearchPages_search_edges_node } from "@saleor/searches/types/SearchPages";
-import { Node, SlugNode, TagNode } from "@saleor/types";
-import { MetadataInput } from "@saleor/types/globalTypes";
+import { Node, RelayToFlat, SlugNode, TagNode } from "@saleor/types";
 
 interface Edge<T> {
   node: T;
@@ -22,14 +25,22 @@ export function mapEdgesToItems<T>(
   return data?.edges?.map(({ node }) => node);
 }
 
-export function mapCountriesToChoices(countries: ShopInfo_shop_countries[]) {
+export function mapCountriesToCountriesCodes(
+  countries?: CountryWithCodeFragment[]
+) {
+  return countries?.map(country => country.code);
+}
+
+export function mapCountriesToChoices(countries: CountryWithCodeFragment[]) {
   return countries.map(country => ({
     label: country.country,
     value: country.code
   }));
 }
 
-export function mapPagesToChoices(pages: SearchPages_search_edges_node[]) {
+export function mapPagesToChoices(
+  pages: RelayToFlat<SearchPagesQuery["search"]>
+) {
   return pages.map(page => ({
     label: page.title,
     value: page.id
@@ -72,11 +83,28 @@ export function mapTagNodeToChoice(
   return mapNodeToChoice(nodes, node => node.tag);
 }
 
-export function mapMetadataItemToInput(item: MetadataItem): MetadataInput {
+export function mapMetadataItemToInput(
+  item: MetadataItemFragment
+): MetadataInput {
   return {
     key: item.key,
     value: item.value
   };
+}
+
+export function mapMultiValueNodeToChoice<T extends Record<string, any>>(
+  nodes: T[] | string[],
+  key?: keyof T
+): MultiAutocompleteChoiceType[] {
+  if (!nodes) {
+    return [];
+  }
+
+  if ((nodes as string[]).every(node => typeof node === "string")) {
+    return (nodes as string[]).map(node => ({ label: node, value: node }));
+  }
+
+  return (nodes as T[]).map(node => ({ label: node[key], value: node[key] }));
 }
 
 export function mapSingleValueNodeToChoice<T extends Record<string, any>>(

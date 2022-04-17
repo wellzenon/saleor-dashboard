@@ -1,10 +1,7 @@
-import gql from "graphql-tag";
-
-import { fragmentAddress } from "./address";
-import { metadataFragment } from "./metadata";
+import { gql } from "@apollo/client";
 
 export const customerFragment = gql`
-  fragment CustomerFragment on User {
+  fragment Customer on User {
     id
     email
     firstName
@@ -13,19 +10,16 @@ export const customerFragment = gql`
 `;
 
 export const customerDetailsFragment = gql`
-  ${metadataFragment}
-  ${customerFragment}
-  ${fragmentAddress}
-  fragment CustomerDetailsFragment on User {
-    ...CustomerFragment
-    ...MetadataFragment
+  fragment CustomerDetails on User {
+    ...Customer
+    ...Metadata
     dateJoined
     lastLogin
     defaultShippingAddress {
-      ...AddressFragment
+      ...Address
     }
     defaultBillingAddress {
-      ...AddressFragment
+      ...Address
     }
     note
     isActive
@@ -33,12 +27,10 @@ export const customerDetailsFragment = gql`
 `;
 
 export const customerAddressesFragment = gql`
-  ${customerFragment}
-  ${fragmentAddress}
-  fragment CustomerAddressesFragment on User {
-    ...CustomerFragment
+  fragment CustomerAddresses on User {
+    ...Customer
     addresses {
-      ...AddressFragment
+      ...Address
     }
     defaultBillingAddress {
       id

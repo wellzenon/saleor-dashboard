@@ -1,18 +1,17 @@
-import { ChannelSaleData } from "@saleor/channels/utils";
-import { SaleDetailsPageFormData } from "@saleor/discounts/components/SaleDetailsPage";
+import { FetchResult } from "@apollo/client";
+import {
+  ChannelSaleFormData,
+  SaleDetailsPageFormData
+} from "@saleor/discounts/components/SaleDetailsPage";
 import { getSaleChannelsVariables } from "@saleor/discounts/handlers";
 import {
-  SaleChannelListingUpdate,
-  SaleChannelListingUpdateVariables
-} from "@saleor/discounts/types/SaleChannelListingUpdate";
-import { SaleDetails_sale } from "@saleor/discounts/types/SaleDetails";
-import {
-  SaleUpdate,
-  SaleUpdateVariables
-} from "@saleor/discounts/types/SaleUpdate";
+  DiscountValueTypeEnum,
+  SaleDetailsFragment,
+  SaleType,
+  SaleUpdateMutation,
+  SaleUpdateMutationVariables
+} from "@saleor/graphql";
 import { joinDateTime } from "@saleor/misc";
-import { DiscountValueTypeEnum, SaleType } from "@saleor/types/globalTypes";
-import { MutationFetchResult } from "react-apollo";
 
 function discountValueTypeEnum(type: SaleType): DiscountValueTypeEnum {
   return type.toString() === DiscountValueTypeEnum.FIXED
@@ -21,14 +20,11 @@ function discountValueTypeEnum(type: SaleType): DiscountValueTypeEnum {
 }
 
 export function createUpdateHandler(
-  sale: SaleDetails_sale,
-  saleChannelsChoices: ChannelSaleData[],
+  sale: SaleDetailsFragment,
+  saleChannelsChoices: ChannelSaleFormData[],
   updateSale: (
-    variables: SaleUpdateVariables
-  ) => Promise<MutationFetchResult<SaleUpdate>>,
-  updateChannels: (options: {
-    variables: SaleChannelListingUpdateVariables;
-  }) => Promise<MutationFetchResult<SaleChannelListingUpdate>>
+    variables: SaleUpdateMutationVariables
+  ) => Promise<FetchResult<SaleUpdateMutation>>
 ) {
   return async (formData: SaleDetailsPageFormData) => {
     const { id } = sale;
@@ -42,12 +38,13 @@ export function createUpdateHandler(
           name: formData.name,
           startDate: joinDateTime(formData.startDate, formData.startTime),
           type: discountValueTypeEnum(formData.type)
-        }
-      }).then(({ data }) => data?.saleUpdate.errors ?? []),
-
-      updateChannels({
-        variables: getSaleChannelsVariables(id, formData, saleChannelsChoices)
-      }).then(({ data }) => data?.saleChannelListingUpdate.errors ?? [])
+        },
+        channelInput: getSaleChannelsVariables(
+          id,
+          formData,
+          saleChannelsChoices.map(channel => channel.id)
+        ).input
+      }).then(({ data }) => data?.saleUpdate.errors ?? [])
     ]);
 
     return errors.flat();

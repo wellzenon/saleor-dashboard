@@ -1,31 +1,25 @@
+import { ApolloProvider } from "@apollo/client";
 import DemoBanner from "@saleor/components/DemoBanner";
+import { PermissionEnum } from "@saleor/graphql";
 import useAppState from "@saleor/hooks/useAppState";
 import { ThemeProvider } from "@saleor/macaw-ui";
-import { defaultDataIdFromObject, InMemoryCache } from "apollo-cache-inmemory";
-import { IntrospectionFragmentMatcher } from "apollo-cache-inmemory";
-import { ApolloClient } from "apollo-client";
-import { ApolloLink } from "apollo-link";
-import { BatchHttpLink } from "apollo-link-batch-http";
-import { createUploadLink } from "apollo-upload-client";
+import { SaleorProvider } from "@saleor/sdk";
 import React from "react";
-import { ApolloProvider } from "react-apollo";
 import { render } from "react-dom";
 import ErrorBoundary from "react-error-boundary";
 import TagManager from "react-gtm-module";
 import { useIntl } from "react-intl";
 import { BrowserRouter, Route, Switch } from "react-router-dom";
 
-import introspectionQueryResultData from "../fragmentTypes.json";
 import AppsSection from "./apps";
 import { ExternalAppProvider } from "./apps/components/ExternalAppContext";
 import { appsSection } from "./apps/urls";
 import AttributeSection from "./attributes";
 import { attributeSection } from "./attributes/urls";
-import Auth from "./auth";
-import AuthProvider, { useAuth } from "./auth/AuthProvider";
+import Auth, { useUser } from "./auth";
+import AuthProvider from "./auth/AuthProvider";
 import LoginLoading from "./auth/components/LoginLoading/LoginLoading";
 import SectionRoute from "./auth/components/SectionRoute";
-import authLink from "./auth/link";
 import CategorySection from "./categories";
 import ChannelsSection from "./channels";
 import { channelsSection } from "./channels/urls";
@@ -35,11 +29,12 @@ import useAppChannel, {
   AppChannelProvider
 } from "./components/AppLayout/AppChannelContext";
 import { DateProvider } from "./components/Date";
+import ExitFormDialogProvider from "./components/Form/ExitFormDialogProvider";
 import { LocaleProvider } from "./components/Locale";
 import MessageManagerProvider from "./components/messages";
 import { ShopProvider } from "./components/Shop";
 import { WindowTitle } from "./components/WindowTitle";
-import { API_URI, APP_MOUNT_URI, DEMO_MODE, GTM_ID } from "./config";
+import { APP_MOUNT_URI, DEMO_MODE, GTM_ID } from "./config";
 import ConfigurationSection from "./configuration";
 import { getConfigMenuItemsPermissions } from "./configuration/utils";
 import AppStateProvider from "./containers/AppState";
@@ -49,6 +44,7 @@ import { CustomerSection } from "./customers";
 import DiscountSection from "./discounts";
 import GiftCardSection from "./giftCards";
 import { giftCardsSectionUrlName } from "./giftCards/urls";
+import { apolloClient, saleorClient } from "./graphql/client";
 import HomePage from "./home";
 import { commonMessages } from "./intl";
 import NavigationSection from "./navigation";
@@ -68,7 +64,6 @@ import StaffSection from "./staff";
 import TaxesSection from "./taxes";
 import themeOverrides from "./themeOverrides";
 import TranslationsSection from "./translations";
-import { PermissionEnum } from "./types/globalTypes";
 import WarehouseSection from "./warehouses";
 import { warehouseSection } from "./warehouses/urls";
 
@@ -78,95 +73,51 @@ if (process.env.GTM_ID) {
 
 errorTracker.init();
 
-// DON'T TOUCH THIS
-// These are separate clients and do not share configs between themselves
-// so we need to explicitly set them
-const linkOptions = {
-  credentials: "include",
-  uri: API_URI
-};
-const uploadLink = createUploadLink(linkOptions);
-const batchLink = new BatchHttpLink({
-  batchInterval: 100,
-  ...linkOptions
-});
-
-const link = ApolloLink.split(
-  operation => operation.getContext().useBatching,
-  batchLink,
-  uploadLink
-);
-
-const fragmentMatcher = new IntrospectionFragmentMatcher({
-  introspectionQueryResultData
-});
-
-const apolloClient = new ApolloClient({
-  cache: new InMemoryCache({
-    fragmentMatcher,
-    dataIdFromObject: (obj: any) => {
-      // We need to set manually shop's ID, since it is singleton and
-      // API does not return its ID
-      if (obj.__typename === "Shop") {
-        return "shop";
-      }
-      return defaultDataIdFromObject(obj);
-    }
-  }),
-  link: authLink.concat(link)
-});
-
 const App: React.FC = () => (
-  <ApolloProvider client={apolloClient}>
-    <BrowserRouter basename={APP_MOUNT_URI}>
-      <ThemeProvider overrides={themeOverrides}>
-        <DateProvider>
-          <LocaleProvider>
-            <MessageManagerProvider>
-              <ServiceWorker />
-              <BackgroundTasksProvider>
-                <AppStateProvider>
-                  <AuthProvider>
-                    <ShopProvider>
-                      <AppChannelProvider>
-                        <ExternalAppProvider>
-                          <Routes />
-                        </ExternalAppProvider>
-                      </AppChannelProvider>
-                    </ShopProvider>
-                  </AuthProvider>
-                </AppStateProvider>
-              </BackgroundTasksProvider>
-            </MessageManagerProvider>
-          </LocaleProvider>
-        </DateProvider>
-      </ThemeProvider>
-    </BrowserRouter>
-  </ApolloProvider>
+  <SaleorProvider client={saleorClient}>
+    <ApolloProvider client={apolloClient}>
+      <BrowserRouter basename={APP_MOUNT_URI}>
+        <ThemeProvider overrides={themeOverrides}>
+          <DateProvider>
+            <LocaleProvider>
+              <MessageManagerProvider>
+                <ServiceWorker />
+                <BackgroundTasksProvider>
+                  <AppStateProvider>
+                    <AuthProvider>
+                      <ShopProvider>
+                        <AppChannelProvider>
+                          <ExternalAppProvider>
+                            <ExitFormDialogProvider>
+                              <Routes />
+                            </ExitFormDialogProvider>
+                          </ExternalAppProvider>
+                        </AppChannelProvider>
+                      </ShopProvider>
+                    </AuthProvider>
+                  </AppStateProvider>
+                </BackgroundTasksProvider>
+              </MessageManagerProvider>
+            </LocaleProvider>
+          </DateProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    </ApolloProvider>
+  </SaleorProvider>
 );
 
 const Routes: React.FC = () => {
   const intl = useIntl();
   const [, dispatchAppState] = useAppState();
-  const {
-    hasToken,
-    isAuthenticated,
-    tokenAuthLoading,
-    tokenVerifyLoading
-  } = useAuth();
+  const { authenticated, authenticating } = useUser();
 
   const { channel } = useAppChannel(false);
 
   const channelLoaded = typeof channel !== "undefined";
 
-  const homePageLoaded =
-    channelLoaded &&
-    isAuthenticated &&
-    !tokenAuthLoading &&
-    !tokenVerifyLoading;
+  const homePageLoaded = channelLoaded && authenticated;
 
-  const homePageLoading =
-    (isAuthenticated && !channelLoaded) || (hasToken && tokenVerifyLoading);
+  const homePageLoading = (authenticated && !channelLoaded) || authenticating;
 
   return (
     <>

@@ -1,3 +1,10 @@
+import { appMessages } from "@saleor/apps/messages";
+import NotFoundPage from "@saleor/components/NotFoundPage";
+import {
+  useAppActivateMutation,
+  useAppDeactivateMutation,
+  useAppQuery
+} from "@saleor/graphql";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
 import getAppErrorMessage from "@saleor/utils/errors/app";
@@ -8,11 +15,6 @@ import { useIntl } from "react-intl";
 import AppActivateDialog from "../../components/AppActivateDialog";
 import AppDeactivateDialog from "../../components/AppDeactivateDialog";
 import AppDetailsPage from "../../components/AppDetailsPage";
-import {
-  useAppActivateMutation,
-  useAppDeactivateMutation
-} from "../../mutations";
-import { useAppDetails } from "../../queries";
 import {
   AppDetailsUrlDialog,
   AppDetailsUrlQueryParams,
@@ -27,10 +29,13 @@ interface AppDetailsProps {
 }
 
 export const AppDetails: React.FC<AppDetailsProps> = ({ id, params }) => {
-  const { data, loading, refetch } = useAppDetails({
+  const { data, loading, refetch } = useAppQuery({
     displayLoader: true,
     variables: { id }
   });
+
+  const appExists = data?.app !== null;
+
   const navigate = useNavigator();
   const notify = useNotifier();
   const intl = useIntl();
@@ -41,20 +46,19 @@ export const AppDetails: React.FC<AppDetailsProps> = ({ id, params }) => {
       if (errors?.length === 0) {
         notify({
           status: "success",
-          text: intl.formatMessage({
-            defaultMessage: "App activated",
-            description: "snackbar text"
-          })
+          text: intl.formatMessage(appMessages.appActivated)
         });
         refetch();
         closeModal();
       } else {
-        errors.forEach(error =>
-          notify({
-            status: "error",
-            text: getAppErrorMessage(error, intl)
-          })
-        );
+        if (appExists) {
+          errors.forEach(error =>
+            notify({
+              status: "error",
+              text: getAppErrorMessage(error, intl)
+            })
+          );
+        }
       }
     }
   });
@@ -64,20 +68,19 @@ export const AppDetails: React.FC<AppDetailsProps> = ({ id, params }) => {
       if (errors.length === 0) {
         notify({
           status: "success",
-          text: intl.formatMessage({
-            defaultMessage: "App deactivated",
-            description: "snackbar text"
-          })
+          text: intl.formatMessage(appMessages.appDeactivated)
         });
         refetch();
         closeModal();
       } else {
-        errors.forEach(error =>
-          notify({
-            status: "error",
-            text: getAppErrorMessage(error, intl)
-          })
-        );
+        if (appExists) {
+          errors.forEach(error =>
+            notify({
+              status: "error",
+              text: getAppErrorMessage(error, intl)
+            })
+          );
+        }
       }
     }
   });
@@ -93,6 +96,10 @@ export const AppDetails: React.FC<AppDetailsProps> = ({ id, params }) => {
   const handleDeactivateConfirm = () => {
     deactivateApp(mutationOpts);
   };
+
+  if (!appExists) {
+    return <NotFoundPage onBack={() => navigate(appsListPath)} />;
+  }
 
   return (
     <>
@@ -113,6 +120,7 @@ export const AppDetails: React.FC<AppDetailsProps> = ({ id, params }) => {
       <AppDetailsPage
         data={data?.app}
         loading={loading}
+        navigateToApp={() => navigate(appUrl(id))}
         navigateToAppSettings={() => navigate(appSettingsUrl(id))}
         onAppActivateOpen={() => openModal("app-activate")}
         onAppDeactivateOpen={() => openModal("app-deactivate")}

@@ -1,13 +1,10 @@
 import {
-  Button,
   Card,
-  IconButton,
   TableBody,
   TableCell,
   TableFooter,
   TableRow
 } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
 import CardTitle from "@saleor/components/CardTitle";
 import Checkbox from "@saleor/components/Checkbox";
 import ResponsiveTable from "@saleor/components/ResponsiveTable";
@@ -15,18 +12,19 @@ import Skeleton from "@saleor/components/Skeleton";
 import TableCellAvatar from "@saleor/components/TableCellAvatar";
 import TableHead from "@saleor/components/TableHead";
 import TablePagination from "@saleor/components/TablePagination";
+import { SaleDetailsFragment } from "@saleor/graphql";
+import { Button, DeleteIcon, IconButton } from "@saleor/macaw-ui";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { maybe, renderCollection } from "../../../misc";
-import { ListActions, ListProps } from "../../../types";
-import { SaleDetails_sale_variants_edges_node } from "../../types/SaleDetails";
+import { ListActions, ListProps, RelayToFlat } from "../../../types";
 import { messages } from "./messages";
 import { useStyles } from "./styles";
 export interface SaleVariantsProps
   extends Omit<ListProps, "onRowClick">,
     ListActions {
-  variants: SaleDetails_sale_variants_edges_node[] | null;
+  variants: RelayToFlat<SaleDetailsFragment["variants"]> | null;
   onVariantAssign: () => void;
   onRowClick: (productId: string, variantId: string) => () => void;
   onVariantUnassign: (id: string) => void;
@@ -59,11 +57,7 @@ const DiscountVariants: React.FC<SaleVariantsProps> = props => {
       <CardTitle
         title={intl.formatMessage(messages.discountVariantsHeader)}
         toolbar={
-          <Button
-            color="primary"
-            onClick={onVariantAssign}
-            data-test-id="assign-variant"
-          >
+          <Button onClick={onVariantAssign} data-test-id="assign-variant">
             <FormattedMessage {...messages.discountVariantsButton} />
           </Button>
         }
@@ -160,6 +154,7 @@ const DiscountVariants: React.FC<SaleVariantsProps> = props => {
                   </TableCell>
                   <TableCell className={classes.colActions}>
                     <IconButton
+                      variant="secondary"
                       disabled={!variant || disabled}
                       onClick={event => {
                         event.stopPropagation();

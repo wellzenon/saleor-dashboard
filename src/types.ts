@@ -1,9 +1,9 @@
-import { MutationResult } from "react-apollo";
+import { FetchResult, MutationResult } from "@apollo/client";
+import { UserPermissionFragment } from "@saleor/graphql";
+import { ConfirmButtonTransitionState } from "@saleor/macaw-ui";
 
-import { ConfirmButtonTransitionState } from "./components/ConfirmButton";
-import { IFilter } from "./components/Filter";
+import { IFilter, IFilterElement } from "./components/Filter";
 import { MultiAutocompleteChoiceType } from "./components/MultiAutocompleteSelectField";
-import { User_userPermissions } from "./fragments/types/User";
 
 export interface UserError {
   field: string | null;
@@ -61,6 +61,7 @@ export interface ListProps<TColumns extends string = string> {
     value: ListSettings<TColumns>[T]
   ) => void;
   onListSettingsReset?: () => void;
+  filterDependency?: IFilterElement;
 }
 
 export interface SortPage<TSortKey extends string> {
@@ -130,7 +131,7 @@ export interface PartialMutationProviderOutput<
   TVariables extends {} = {}
 > {
   opts: MutationResult<TData> & MutationResultAdditionalProps;
-  mutate: (variables: TVariables) => void;
+  mutate: (variables: TVariables) => Promise<FetchResult<TData>>;
 }
 
 export interface Node {
@@ -194,7 +195,7 @@ export interface FetchMoreProps {
 export type TabActionDialog = "save-search" | "delete-search";
 
 export interface UserPermissionProps {
-  userPermissions: User_userPermissions[];
+  userPermissions: UserPermissionFragment[];
 }
 
 export interface MutationResultAdditionalProps {
@@ -216,3 +217,14 @@ export interface AutocompleteFilterOpts
 }
 
 export type Ids = string[];
+
+export enum StatusType {
+  INFO = "info",
+  ERROR = "error",
+  WARNING = "warning",
+  SUCCESS = "success"
+}
+
+export type RelayToFlat<T extends { edges: Array<{ node: any }> }> = Array<
+  T["edges"][0]["node"]
+>;

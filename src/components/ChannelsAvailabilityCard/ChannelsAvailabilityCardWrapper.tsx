@@ -1,9 +1,9 @@
-import { Button, Card, CardContent, Typography } from "@material-ui/core";
+import { Card, CardContent, Typography } from "@material-ui/core";
 import CardTitle from "@saleor/components/CardTitle";
 import Hr from "@saleor/components/Hr";
 import RequirePermissions from "@saleor/components/RequirePermissions";
-import useUser from "@saleor/hooks/useUser";
-import { PermissionEnum } from "@saleor/types/globalTypes";
+import { PermissionEnum } from "@saleor/graphql";
+import { Button } from "@saleor/macaw-ui";
 import React from "react";
 import { useIntl } from "react-intl";
 
@@ -27,7 +27,6 @@ export const ChannelsAvailabilityWrapper: React.FC<ChannelsAvailabilityWrapperPr
   } = props;
   const intl = useIntl();
   const classes = useStyles({});
-  const { user } = useUser();
   const channelsAvailabilityText = intl.formatMessage(
     {
       defaultMessage:
@@ -50,14 +49,10 @@ export const ChannelsAvailabilityWrapper: React.FC<ChannelsAvailabilityWrapperPr
             description: "section header"
           })}
           toolbar={
-            <RequirePermissions
-              userPermissions={user?.userPermissions || []}
-              requiredPermissions={managePermissions}
-            >
+            <RequirePermissions requiredPermissions={managePermissions}>
               <Button
-                color="primary"
                 onClick={openModal}
-                data-test-id="channels-availiability-manage-button"
+                data-test-id="channels-availability-manage-button"
               >
                 {intl.formatMessage({
                   defaultMessage: "Manage",

@@ -1,27 +1,28 @@
 import {
-  Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   TextField
 } from "@material-ui/core";
+import BackButton from "@saleor/components/BackButton";
 import CompanyAddressForm from "@saleor/components/CompanyAddressInput/CompanyAddressForm";
-import ConfirmButton, {
-  ConfirmButtonTransitionState
-} from "@saleor/components/ConfirmButton";
+import ConfirmButton from "@saleor/components/ConfirmButton";
 import Form from "@saleor/components/Form";
 import FormSpacer from "@saleor/components/FormSpacer";
 import Hr from "@saleor/components/Hr";
-import { ShopInfo_shop_countries } from "@saleor/components/Shop/types/ShopInfo";
 import { AddressTypeInput } from "@saleor/customers/types";
-import { WarehouseErrorFragment } from "@saleor/fragments/types/WarehouseErrorFragment";
+import {
+  CountryWithCodeFragment,
+  WarehouseErrorFragment
+} from "@saleor/graphql";
 import useAddressValidation from "@saleor/hooks/useAddressValidation";
+import { SubmitPromise } from "@saleor/hooks/useForm";
 import useModalDialogErrors from "@saleor/hooks/useModalDialogErrors";
 import useModalDialogOpen from "@saleor/hooks/useModalDialogOpen";
 import useStateFromProps from "@saleor/hooks/useStateFromProps";
 import { buttonMessages } from "@saleor/intl";
-import { makeStyles } from "@saleor/macaw-ui";
+import { ConfirmButtonTransitionState, makeStyles } from "@saleor/macaw-ui";
 import { DialogProps } from "@saleor/types";
 import createSingleAutocompleteSelectHandler from "@saleor/utils/handlers/singleAutocompleteSelectChangeHandler";
 import { mapCountriesToChoices } from "@saleor/utils/maps";
@@ -34,10 +35,10 @@ export interface ShippingZoneAddWarehouseDialogSubmitData
 }
 export interface ShippingZoneAddWarehouseDialogProps extends DialogProps {
   confirmButtonState: ConfirmButtonTransitionState;
-  countries: ShopInfo_shop_countries[];
+  countries: CountryWithCodeFragment[];
   disabled: boolean;
   errors: WarehouseErrorFragment[];
-  onSubmit: (data: ShippingZoneAddWarehouseDialogSubmitData) => void;
+  onSubmit: (data: ShippingZoneAddWarehouseDialogSubmitData) => SubmitPromise;
 }
 
 const initialForm: ShippingZoneAddWarehouseDialogSubmitData = {
@@ -138,13 +139,9 @@ const ShippingZoneAddWarehouseDialog: React.FC<ShippingZoneAddWarehouseDialogPro
                 />
               </DialogContent>
               <DialogActions>
-                <Button onClick={onClose}>
-                  <FormattedMessage {...buttonMessages.back} />
-                </Button>
+                <BackButton onClick={onClose} />
                 <ConfirmButton
                   transitionState={confirmButtonState}
-                  color="primary"
-                  variant="contained"
                   type="submit"
                 >
                   <FormattedMessage {...buttonMessages.create} />

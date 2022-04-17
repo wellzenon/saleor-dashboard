@@ -1,6 +1,6 @@
+import { AccountErrorCode } from "@saleor/graphql";
 import CardDecorator from "@saleor/storybook//CardDecorator";
 import Decorator from "@saleor/storybook//Decorator";
-import { AccountErrorCode } from "@saleor/types/globalTypes";
 import { storiesOf } from "@storybook/react";
 import React from "react";
 
@@ -21,7 +21,8 @@ storiesOf("Views / Authentication / Set up a new password", module)
         __typename: "AccountError",
         code: AccountErrorCode.PASSWORD_TOO_SHORT,
         field,
-        addressType: null
+        addressType: null,
+        message: null
       }))}
       disabled={false}
       onSubmit={() => undefined}

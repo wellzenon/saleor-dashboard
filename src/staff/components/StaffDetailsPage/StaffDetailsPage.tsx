@@ -2,32 +2,34 @@ import { Card, CardContent, Typography } from "@material-ui/core";
 import AccountPermissionGroups from "@saleor/components/AccountPermissionGroups";
 import CardSpacer from "@saleor/components/CardSpacer";
 import CardTitle from "@saleor/components/CardTitle";
-import { ConfirmButtonTransitionState } from "@saleor/components/ConfirmButton";
 import Container from "@saleor/components/Container";
 import Form from "@saleor/components/Form";
 import Grid from "@saleor/components/Grid";
 import { MultiAutocompleteChoiceType } from "@saleor/components/MultiAutocompleteSelectField";
 import PageHeader from "@saleor/components/PageHeader";
 import Savebar from "@saleor/components/Savebar";
-import { StaffErrorFragment } from "@saleor/fragments/types/StaffErrorFragment";
+import {
+  SearchPermissionGroupsQuery,
+  StaffErrorFragment,
+  StaffMemberDetailsFragment
+} from "@saleor/graphql";
 import { SubmitPromise } from "@saleor/hooks/useForm";
 import useLocale from "@saleor/hooks/useLocale";
 import useStateFromProps from "@saleor/hooks/useStateFromProps";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
+import { Backlink, ConfirmButtonTransitionState } from "@saleor/macaw-ui";
 import { getUserName } from "@saleor/misc";
-import { SearchPermissionGroups_search_edges_node } from "@saleor/searches/types/SearchPermissionGroups";
 import UserStatus from "@saleor/staff/components/UserStatus";
-import { FetchMoreProps, SearchPageProps } from "@saleor/types";
+import { FetchMoreProps, RelayToFlat, SearchPageProps } from "@saleor/types";
 import createMultiAutocompleteSelectHandler from "@saleor/utils/handlers/multiAutocompleteSelectChangeHandler";
 import React from "react";
 import { useIntl } from "react-intl";
 
-import { StaffMemberDetails_user } from "../../types/StaffMemberDetails";
 import StaffPassword from "../StaffPassword/StaffPassword";
 import StaffPreferences from "../StaffPreferences";
 import StaffProperties from "../StaffProperties/StaffProperties";
 import { staffDetailsPageMessages as messages } from "./messages";
+import useStyles from "./styles";
 
 export interface StaffDetailsFormData {
   email: string;
@@ -38,7 +40,7 @@ export interface StaffDetailsFormData {
 }
 
 export interface StaffDetailsPageProps extends SearchPageProps {
-  availablePermissionGroups: SearchPermissionGroups_search_edges_node[];
+  availablePermissionGroups: RelayToFlat<SearchPermissionGroupsQuery["search"]>;
   canEditAvatar: boolean;
   canEditPreferences: boolean;
   canEditStatus: boolean;
@@ -46,7 +48,7 @@ export interface StaffDetailsPageProps extends SearchPageProps {
   disabled: boolean;
   fetchMorePermissionGroups: FetchMoreProps;
   saveButtonBarState: ConfirmButtonTransitionState;
-  staffMember: StaffMemberDetails_user;
+  staffMember: StaffMemberDetailsFragment;
   errors: StaffErrorFragment[];
   onBack: () => void;
   onChangePassword: () => void;
@@ -77,6 +79,7 @@ const StaffDetailsPage: React.FC<StaffDetailsPageProps> = ({
   staffMember
 }: StaffDetailsPageProps) => {
   const intl = useIntl();
+  const classes = useStyles();
   const { locale, setLocale } = useLocale();
   const [
     permissionGroupsDisplayValues,
@@ -98,8 +101,13 @@ const StaffDetailsPage: React.FC<StaffDetailsPageProps> = ({
   };
 
   return (
-    <Form initial={initialForm} onSubmit={onSubmit} confirmLeave>
-      {({ data: formData, change, hasChanged, submit, toggleValue }) => {
+    <Form
+      confirmLeave
+      initial={initialForm}
+      onSubmit={onSubmit}
+      disabled={disabled}
+    >
+      {({ data: formData, change, isSaveDisabled, submit, toggleValue }) => {
         const permissionGroupsChange = createMultiAutocompleteSelectHandler(
           toggleValue,
           setPermissionGroupsDisplayValues,
@@ -135,7 +143,7 @@ const StaffDetailsPage: React.FC<StaffDetailsPageProps> = ({
                   </>
                 )}
               </div>
-              <div>
+              <div className={classes.noOverflow}>
                 {canEditPreferences && (
                   <StaffPreferences
                     locale={locale}
@@ -184,7 +192,7 @@ const StaffDetailsPage: React.FC<StaffDetailsPageProps> = ({
               </div>
             </Grid>
             <Savebar
-              disabled={disabled || !hasChanged}
+              disabled={isSaveDisabled}
               state={saveButtonBarState}
               onCancel={onBack}
               onSubmit={submit}

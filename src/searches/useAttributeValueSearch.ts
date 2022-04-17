@@ -1,16 +1,12 @@
-import { attributeValueFragment } from "@saleor/fragments/attributes";
-import { pageInfoFragment } from "@saleor/fragments/pageInfo";
-import makeSearch from "@saleor/hooks/makeSearch";
-import gql from "graphql-tag";
-
+import { gql } from "@apollo/client";
 import {
-  SearchAttributeValues,
-  SearchAttributeValuesVariables
-} from "./types/SearchAttributeValues";
+  SearchAttributeValuesDocument,
+  SearchAttributeValuesQuery,
+  SearchAttributeValuesQueryVariables
+} from "@saleor/graphql";
+import makeSearch from "@saleor/hooks/makeSearch";
 
 export const searchAttributeValues = gql`
-  ${pageInfoFragment}
-  ${attributeValueFragment}
   query SearchAttributeValues(
     $id: ID
     $after: String
@@ -22,11 +18,11 @@ export const searchAttributeValues = gql`
       choices(after: $after, first: $first, filter: { search: $query }) {
         edges {
           node {
-            ...AttributeValueFragment
+            ...AttributeValueDetails
           }
         }
         pageInfo {
-          ...PageInfoFragment
+          ...PageInfo
         }
       }
     }
@@ -34,9 +30,9 @@ export const searchAttributeValues = gql`
 `;
 
 export default makeSearch<
-  SearchAttributeValues,
-  SearchAttributeValuesVariables
->(searchAttributeValues, result => {
+  SearchAttributeValuesQuery,
+  SearchAttributeValuesQueryVariables
+>(SearchAttributeValuesDocument, result => {
   if (result.data?.attribute.choices.pageInfo.hasNextPage) {
     result.loadMore(
       (prev, next) => {

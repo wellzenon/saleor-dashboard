@@ -1,15 +1,14 @@
-import { IconButton, TableCell, TableRow, Typography } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
+import { TableCell, TableRow, Typography } from "@material-ui/core";
 import Link from "@saleor/components/Link";
 import Money from "@saleor/components/Money";
 import TableCellAvatar from "@saleor/components/TableCellAvatar";
 import { AVATAR_MARGIN } from "@saleor/components/TableCellAvatar/Avatar";
-import { makeStyles } from "@saleor/macaw-ui";
+import { OrderLineFragment } from "@saleor/graphql";
+import { DeleteIcon, IconButton, makeStyles } from "@saleor/macaw-ui";
 import { OrderLineDiscountContextConsumerProps } from "@saleor/products/components/OrderDiscountProviders/OrderLineDiscountProvider";
 import React, { useRef } from "react";
 
 import { maybe } from "../../../misc";
-import { OrderDetails_order_lines } from "../../types/OrderDetails";
 import OrderDiscountCommonModal from "../OrderDiscountCommonModal";
 import { ORDER_LINE_DISCOUNT } from "../OrderDiscountCommonModal/types";
 import TableLineForm, { FormData } from "./TableLineForm";
@@ -52,7 +51,7 @@ const useStyles = makeStyles(
 );
 
 interface TableLineProps extends OrderLineDiscountContextConsumerProps {
-  line: OrderDetails_order_lines;
+  line: OrderLineFragment;
   onOrderLineChange: (id: string, data: FormData) => void;
   onOrderLineRemove: (id: string) => void;
 }
@@ -130,7 +129,7 @@ const TableLine: React.FC<TableLineProps> = ({
         />
       </TableCell>
       <TableCell className={classes.colAction}>
-        <IconButton onClick={() => onOrderLineRemove(id)}>
+        <IconButton variant="secondary" onClick={() => onOrderLineRemove(id)}>
           <DeleteIcon color="primary" />
         </IconButton>
       </TableCell>

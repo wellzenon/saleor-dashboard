@@ -1,26 +1,35 @@
 import { WindowTitle } from "@saleor/components/WindowTitle";
 import { DEFAULT_INITIAL_SEARCH_DATA } from "@saleor/config";
+import {
+  FulfillmentStatus,
+  OrderFulfillmentApproveMutation,
+  OrderFulfillmentApproveMutationVariables,
+  OrderUpdateMutation,
+  OrderUpdateMutationVariables,
+  useCustomerAddressesQuery,
+  useWarehouseListQuery
+} from "@saleor/graphql";
 import useNavigator from "@saleor/hooks/useNavigator";
-import useUser from "@saleor/hooks/useUser";
 import OrderCannotCancelOrderDialog from "@saleor/orders/components/OrderCannotCancelOrderDialog";
+import { OrderCustomerAddressesEditDialogOutput } from "@saleor/orders/components/OrderCustomerAddressesEditDialog/types";
 import OrderFulfillmentApproveDialog from "@saleor/orders/components/OrderFulfillmentApproveDialog";
 import OrderInvoiceEmailSendDialog from "@saleor/orders/components/OrderInvoiceEmailSendDialog";
-import {
-  OrderFulfillmentApprove,
-  OrderFulfillmentApproveVariables
-} from "@saleor/orders/types/OrderFulfillmentApprove";
 import { OrderDiscountProvider } from "@saleor/products/components/OrderDiscountProviders/OrderDiscountProvider";
 import { OrderLineDiscountProvider } from "@saleor/products/components/OrderDiscountProviders/OrderLineDiscountProvider";
+import { useOrderVariantSearch } from "@saleor/searches/useOrderVariantSearch";
 import { PartialMutationProviderOutput } from "@saleor/types";
 import { mapEdgesToItems } from "@saleor/utils/maps";
-import { useWarehouseList } from "@saleor/warehouses/queries";
 import React from "react";
 import { useIntl } from "react-intl";
 
 import { customerUrl } from "../../../../customers/urls";
-import { getMutationState, getStringOrPlaceholder } from "../../../../misc";
+import {
+  extractMutationErrors,
+  getMutationState,
+  getStringOrPlaceholder
+} from "../../../../misc";
 import { productUrl } from "../../../../products/urls";
-import { FulfillmentStatus } from "../../../../types/globalTypes";
+import OrderAddressFields from "../../../components/OrderAddressFields/OrderAddressFields";
 import OrderCancelDialog from "../../../components/OrderCancelDialog";
 import OrderDetailsPage from "../../../components/OrderDetailsPage";
 import OrderFulfillmentCancelDialog from "../../../components/OrderFulfillmentCancelDialog";
@@ -30,15 +39,15 @@ import OrderPaymentDialog from "../../../components/OrderPaymentDialog";
 import OrderPaymentVoidDialog from "../../../components/OrderPaymentVoidDialog";
 import OrderProductAddDialog from "../../../components/OrderProductAddDialog";
 import OrderShippingMethodEditDialog from "../../../components/OrderShippingMethodEditDialog";
-import { useOrderVariantSearch } from "../../../queries";
 import {
   orderFulfillUrl,
   orderListUrl,
   orderRefundUrl,
-  orderReturnPath,
+  orderReturnUrl,
   orderUrl,
   OrderUrlQueryParams
 } from "../../../urls";
+import { isAnyAddressEditModalOpen } from "../OrderDraftDetails";
 
 interface OrderUnconfirmedDetailsProps {
   id: string;
@@ -49,6 +58,10 @@ interface OrderUnconfirmedDetailsProps {
   orderLineDelete: any;
   orderInvoiceRequest: any;
   handleSubmit: any;
+  orderUpdate: PartialMutationProviderOutput<
+    OrderUpdateMutation,
+    OrderUpdateMutationVariables
+  >;
   orderCancel: any;
   orderShippingMethodUpdate: any;
   orderLinesAdd: any;
@@ -56,8 +69,8 @@ interface OrderUnconfirmedDetailsProps {
   orderVoid: any;
   orderPaymentCapture: any;
   orderFulfillmentApprove: PartialMutationProviderOutput<
-    OrderFulfillmentApprove,
-    OrderFulfillmentApproveVariables
+    OrderFulfillmentApproveMutation,
+    OrderFulfillmentApproveMutationVariables
   >;
   orderFulfillmentCancel: any;
   orderFulfillmentUpdateTracking: any;
@@ -77,6 +90,7 @@ export const OrderUnconfirmedDetails: React.FC<OrderUnconfirmedDetailsProps> = (
   orderLineDelete,
   orderInvoiceRequest,
   handleSubmit,
+  orderUpdate,
   orderCancel,
   orderShippingMethodUpdate,
   orderLinesAdd,
@@ -95,21 +109,42 @@ export const OrderUnconfirmedDetails: React.FC<OrderUnconfirmedDetailsProps> = (
   const order = data.order;
   const shop = data.shop;
   const navigate = useNavigator();
-  const { user } = useUser();
 
   const {
     loadMore,
     search: variantSearch,
     result: variantSearchOpts
   } = useOrderVariantSearch({
-    variables: { ...DEFAULT_INITIAL_SEARCH_DATA, channel: order.channel.slug }
+    variables: {
+      ...DEFAULT_INITIAL_SEARCH_DATA,
+      channel: order.channel.slug
+    }
   });
-  const warehouses = useWarehouseList({
+  const warehouses = useWarehouseListQuery({
     displayLoader: true,
     variables: {
       first: 30
     }
   });
+
+  const {
+    data: customerAddresses,
+    loading: customerAddressesLoading
+  } = useCustomerAddressesQuery({
+    variables: {
+      id: order?.user?.id
+    },
+    skip: !order?.user?.id || !isAnyAddressEditModalOpen(params.action)
+  });
+
+  const handleCustomerChangeAddresses = async (
+    data: Partial<OrderCustomerAddressesEditDialogOutput>
+  ): Promise<any> =>
+    orderUpdate.mutate({
+      id,
+      input: data
+    });
+
   const intl = useIntl();
   const [transactionReference, setTransactionReference] = React.useState("");
 
@@ -131,15 +166,17 @@ export const OrderUnconfirmedDetails: React.FC<OrderUnconfirmedDetailsProps> = (
       <OrderDiscountProvider order={order}>
         <OrderLineDiscountProvider order={order}>
           <OrderDetailsPage
-            onOrderReturn={() => navigate(orderReturnPath(id))}
+            onOrderReturn={() => navigate(orderReturnUrl(id))}
             disabled={
               updateMetadataOpts.loading || updatePrivateMetadataOpts.loading
             }
             onNoteAdd={variables =>
-              orderAddNote.mutate({
-                input: variables,
-                order: id
-              })
+              extractMutationErrors(
+                orderAddNote.mutate({
+                  input: variables,
+                  order: id
+                })
+              )
             }
             onBack={handleBack}
             order={order}
@@ -165,8 +202,7 @@ export const OrderUnconfirmedDetails: React.FC<OrderUnconfirmedDetailsProps> = (
                   .errors || [])
               ]
             )}
-            shippingMethods={data?.order?.availableShippingMethods || []}
-            userPermissions={user?.userPermissions || []}
+            shippingMethods={data?.order?.shippingMethods || []}
             onOrderCancel={() => openModal("cancel")}
             onOrderFulfill={() => navigate(orderFulfillUrl(id))}
             onFulfillmentApprove={fulfillmentId =>
@@ -245,15 +281,17 @@ export const OrderUnconfirmedDetails: React.FC<OrderUnconfirmedDetailsProps> = (
         }
         open={params.action === "edit-shipping"}
         shippingMethod={order?.shippingMethod?.id}
-        shippingMethods={order?.availableShippingMethods}
+        shippingMethods={order?.shippingMethods}
         onClose={closeModal}
         onSubmit={variables =>
-          orderShippingMethodUpdate.mutate({
-            id,
-            input: {
-              shippingMethod: variables.shippingMethod
-            }
-          })
+          extractMutationErrors(
+            orderShippingMethodUpdate.mutate({
+              id,
+              input: {
+                shippingMethod: variables.shippingMethod
+              }
+            })
+          )
         }
       />
       <OrderProductAddDialog
@@ -350,11 +388,11 @@ export const OrderUnconfirmedDetails: React.FC<OrderUnconfirmedDetailsProps> = (
             ?.orderFulfillmentUpdateTracking.errors || []
         }
         open={params.action === "edit-fulfillment"}
-        trackingNumber={getStringOrPlaceholder(
+        trackingNumber={
           data?.order?.fulfillments.find(
             fulfillment => fulfillment.id === params.id
           )?.trackingNumber
-        )}
+        }
         onConfirm={variables =>
           orderFulfillmentUpdateTracking.mutate({
             id: params.id,
@@ -373,6 +411,19 @@ export const OrderUnconfirmedDetails: React.FC<OrderUnconfirmedDetailsProps> = (
         invoice={order?.invoices?.find(invoice => invoice.id === params.id)}
         onClose={closeModal}
         onSend={() => orderInvoiceSend.mutate({ id: params.id })}
+      />
+      <OrderAddressFields
+        action={params?.action}
+        customerAddressesLoading={customerAddressesLoading}
+        orderShippingAddress={order?.shippingAddress}
+        orderBillingAddress={order?.billingAddress}
+        isDraft={false}
+        countries={data?.shop?.countries}
+        customer={customerAddresses?.user}
+        onClose={closeModal}
+        onConfirm={handleCustomerChangeAddresses}
+        confirmButtonState={orderUpdate.opts.status}
+        errors={orderUpdate.opts.data?.orderUpdate.errors}
       />
     </>
   );

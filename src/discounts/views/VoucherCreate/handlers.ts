@@ -1,28 +1,28 @@
+import { FetchResult } from "@apollo/client";
 import { VoucherDetailsPageFormData } from "@saleor/discounts/components/VoucherDetailsPage";
 import { getChannelsVariables } from "@saleor/discounts/handlers";
 import { DiscountTypeEnum, RequirementsPicker } from "@saleor/discounts/types";
 import {
-  VoucherChannelListingUpdate,
-  VoucherChannelListingUpdateVariables
-} from "@saleor/discounts/types/VoucherChannelListingUpdate";
-import {
-  VoucherCreate,
-  VoucherCreateVariables
-} from "@saleor/discounts/types/VoucherCreate";
-import { joinDateTime } from "@saleor/misc";
-import {
   DiscountValueTypeEnum,
+  VoucherChannelListingUpdateMutation,
+  VoucherChannelListingUpdateMutationVariables,
+  VoucherCreateMutation,
+  VoucherCreateMutationVariables,
   VoucherTypeEnum
-} from "@saleor/types/globalTypes";
-import { MutationFetchResult } from "react-apollo";
+} from "@saleor/graphql";
+import {
+  extractMutationErrors,
+  getMutationErrors,
+  joinDateTime
+} from "@saleor/misc";
 
 export function createHandler(
   voucherCreate: (
-    variables: VoucherCreateVariables
-  ) => Promise<MutationFetchResult<VoucherCreate>>,
+    variables: VoucherCreateMutationVariables
+  ) => Promise<FetchResult<VoucherCreateMutation>>,
   updateChannels: (options: {
-    variables: VoucherChannelListingUpdateVariables;
-  }) => Promise<MutationFetchResult<VoucherChannelListingUpdate>>
+    variables: VoucherChannelListingUpdateMutationVariables;
+  }) => Promise<FetchResult<VoucherChannelListingUpdateMutation>>
 ) {
   return async (formData: VoucherDetailsPageFormData) => {
     const response = await voucherCreate({
@@ -53,15 +53,26 @@ export function createHandler(
       }
     });
 
-    if (!response.data.voucherCreate.errors.length) {
+    const errors = getMutationErrors(response);
+
+    if (errors.length > 0) {
+      return { errors };
+    }
+
+    const channelsUpdateErrors = await extractMutationErrors(
       updateChannels({
         variables: getChannelsVariables(
           response.data.voucherCreate.voucher.id,
           formData,
           formData.channelListings
         )
-      });
-      return response.data.voucherCreate.voucher.id;
+      })
+    );
+
+    if (channelsUpdateErrors.length > 0) {
+      return { errors: channelsUpdateErrors };
     }
+
+    return { id: response.data.voucherCreate.voucher.id };
   };
 }

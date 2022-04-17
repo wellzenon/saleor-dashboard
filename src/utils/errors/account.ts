@@ -1,5 +1,5 @@
-import { AccountErrorFragment } from "@saleor/fragments/types/AccountErrorFragment";
-import { AccountErrorCode } from "@saleor/types/globalTypes";
+import { AccountErrorCode } from "@saleor/graphql";
+import { SetPasswordData } from "@saleor/sdk";
 import { defineMessages, IntlShape } from "react-intl";
 
 import { getCommonFormFieldErrorMessage } from "./common";
@@ -31,10 +31,11 @@ const messages = defineMessages({
   }
 });
 
-function getAccountErrorMessage(
-  err: AccountErrorFragment,
-  intl: IntlShape
-): string {
+interface ErrorFragment {
+  code: AccountErrorCode | SetPasswordData["errors"][number]["code"];
+}
+
+function getAccountErrorMessage(err: ErrorFragment, intl: IntlShape): string {
   if (err) {
     switch (err.code) {
       case AccountErrorCode.INVALID_PASSWORD:

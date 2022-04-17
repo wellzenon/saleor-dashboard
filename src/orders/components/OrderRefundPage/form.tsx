@@ -1,11 +1,15 @@
-import useForm, { FormChange, SubmitPromise } from "@saleor/hooks/useForm";
+import { useExitFormDialog } from "@saleor/components/Form/useExitFormDialog";
+import { OrderRefundDataQuery } from "@saleor/graphql";
+import useForm, {
+  CommonUseFormResultWithHandlers,
+  SubmitPromise
+} from "@saleor/hooks/useForm";
 import useFormset, {
   FormsetChange,
   FormsetData
 } from "@saleor/hooks/useFormset";
-import { OrderRefundData_order } from "@saleor/orders/types/OrderRefundData";
-import handleFormSubmit from "@saleor/utils/handlers/handleFormSubmit";
-import React from "react";
+import useHandleFormSubmit from "@saleor/hooks/useHandleFormSubmit";
+import React, { useEffect } from "react";
 
 import { refundFulfilledStatuses } from "./OrderRefundPage";
 
@@ -40,20 +44,20 @@ export interface OrderRefundFormData extends OrderRefundData {
 
 export type OrderRefundSubmitData = OrderRefundFormData;
 
-export interface UseOrderRefundFormResult {
-  change: FormChange;
-  data: OrderRefundFormData;
+export interface UseOrderRefundFormResult
+  extends CommonUseFormResultWithHandlers<
+    OrderRefundFormData,
+    OrderRefundHandlers
+  > {
   disabled: boolean;
-  handlers: OrderRefundHandlers;
-  hasChanged: boolean;
-  submit: () => Promise<boolean>;
 }
 
 interface OrderRefundFormProps {
   children: (props: UseOrderRefundFormResult) => React.ReactNode;
-  order: OrderRefundData_order;
+  order: OrderRefundDataQuery["order"];
   defaultType: OrderRefundType;
   onSubmit: (data: OrderRefundSubmitData) => SubmitPromise;
+  disabled: boolean;
 }
 
 function getOrderRefundPageFormData(
@@ -68,14 +72,27 @@ function getOrderRefundPageFormData(
 }
 
 function useOrderRefundForm(
-  order: OrderRefundData_order,
+  order: OrderRefundDataQuery["order"],
   defaultType: OrderRefundType,
-  onSubmit: (data: OrderRefundSubmitData) => SubmitPromise
+  onSubmit: (data: OrderRefundSubmitData) => SubmitPromise,
+  disabled: boolean
 ): UseOrderRefundFormResult {
-  const [changed, setChanged] = React.useState(false);
-  const triggerChange = () => setChanged(true);
+  const {
+    handleChange,
+    setChanged,
+    hasChanged,
+    triggerChange,
+    data: formData,
+    formId,
+    setIsSubmitDisabled
+  } = useForm(getOrderRefundPageFormData(defaultType), undefined, {
+    confirmLeave: true
+  });
 
-  const form = useForm(getOrderRefundPageFormData(defaultType));
+  const { setExitDialogSubmitRef } = useExitFormDialog({
+    formId
+  });
+
   const refundedProductQuantities = useFormset<null, string>(
     order?.lines
       .filter(line => line.quantityToFulfill > 0)
@@ -103,10 +120,6 @@ function useOrderRefundForm(
       )
   );
 
-  const handleChange: FormChange = (event, cb) => {
-    form.change(event, cb);
-    triggerChange();
-  };
   const handleRefundedProductQuantityChange: FormsetChange<string> = (
     id,
     value
@@ -165,14 +178,23 @@ function useOrderRefundForm(
   };
 
   const data: OrderRefundFormData = {
-    ...form.data,
+    ...formData,
     refundedFulfilledProductQuantities: refundedFulfilledProductQuantities.data,
     refundedProductQuantities: refundedProductQuantities.data
   };
 
-  const submit = () => handleFormSubmit(data, onSubmit, setChanged);
+  const handleFormSubmit = useHandleFormSubmit({
+    formId,
+    onSubmit,
+    setChanged
+  });
 
-  const disabled = !order;
+  const submit = () => handleFormSubmit(data);
+
+  useEffect(() => setExitDialogSubmitRef(submit), [submit]);
+
+  const isSaveDisabled = disabled || !order;
+  setIsSubmitDisabled(isSaveDisabled);
 
   return {
     change: handleChange,
@@ -184,8 +206,9 @@ function useOrderRefundForm(
       setMaximalRefundedFulfilledProductQuantities: handleMaximalRefundedFulfilledProductQuantitiesSet,
       setMaximalRefundedProductQuantities: handleMaximalRefundedProductQuantitiesSet
     },
-    hasChanged: changed,
-    submit
+    hasChanged,
+    submit,
+    isSaveDisabled
   };
 }
 
@@ -193,9 +216,10 @@ const OrderRefundForm: React.FC<OrderRefundFormProps> = ({
   children,
   order,
   defaultType,
-  onSubmit
+  onSubmit,
+  disabled
 }) => {
-  const props = useOrderRefundForm(order, defaultType, onSubmit);
+  const props = useOrderRefundForm(order, defaultType, onSubmit, disabled);
 
   return <form onSubmit={props.submit}>{children(props)}</form>;
 };

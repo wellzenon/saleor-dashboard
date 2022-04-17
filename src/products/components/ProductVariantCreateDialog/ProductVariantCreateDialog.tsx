@@ -10,22 +10,12 @@ import Form from "@saleor/components/Form";
 import FormSpacer from "@saleor/components/FormSpacer";
 import RadioGroupField from "@saleor/components/RadioGroupField";
 import { buttonMessages } from "@saleor/intl";
-import { makeStyles } from "@saleor/macaw-ui";
 import React from "react";
 import { FormattedMessage } from "react-intl";
 
 import { messages } from "./messages";
+import { useStyles } from "./styles";
 import { ProductVariantCreateOptionEnum } from "./types";
-
-const useStyles = makeStyles(
-  theme => ({
-    option: {
-      marginBottom: theme.spacing(2),
-      width: 400
-    }
-  }),
-  { name: "ProductVariantCreateDialog" }
-);
 
 interface ProductVariantCreateDialogForm {
   option: ProductVariantCreateOptionEnum;
@@ -71,13 +61,12 @@ const ProductVariantCreateDialog: React.FC<ProductVariantCreateDialogProps> = pr
             <DialogTitle>
               <FormattedMessage {...messages.title} />
             </DialogTitle>
-            <DialogContent>
+            <DialogContent className={classes.dialogContent}>
               <Typography variant="body2">
                 <FormattedMessage {...messages.description} />
               </Typography>
               <FormSpacer />
               <RadioGroupField
-                alignTop
                 choices={options.map(option => ({
                   label: (
                     <div
@@ -102,11 +91,8 @@ const ProductVariantCreateDialog: React.FC<ProductVariantCreateDialogProps> = pr
             <DialogActions>
               <ConfirmButton
                 transitionState="default"
-                color="primary"
-                variant="contained"
                 type="submit"
                 data-test-id="submit"
-                data-test="submit"
               >
                 <FormattedMessage {...buttonMessages.create} />
               </ConfirmButton>

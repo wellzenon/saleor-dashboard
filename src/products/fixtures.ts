@@ -1,22 +1,23 @@
-import { ProductVariant } from "@saleor/fragments/types/ProductVariant";
 import {
   AttributeInputTypeEnum,
+  ProductFragment,
+  ProductListQuery,
   ProductMediaType,
+  ProductVariantCreateDataQuery,
+  ProductVariantFragment,
   WeightUnitsEnum
-} from "@saleor/types/globalTypes";
+} from "@saleor/graphql";
+import { RelayToFlat } from "@saleor/types";
 import { warehouseList } from "@saleor/warehouses/fixtures";
 
 import * as richTextEditorFixtures from "../components/RichTextEditor/fixtures.json";
-import { ProductDetails_product } from "./types/ProductDetails";
-import { ProductList_products_edges_node } from "./types/ProductList";
-import { ProductVariantCreateData_product } from "./types/ProductVariantCreateData";
 
 const content = richTextEditorFixtures.richTextEditor;
 
 export const product: (
   placeholderImage: string
-) => ProductDetails_product &
-  ProductVariantCreateData_product = placeholderImage => ({
+) => ProductFragment &
+  ProductVariantCreateDataQuery["product"] = placeholderImage => ({
   __typename: "Product" as "Product",
   attributes: [
     {
@@ -472,6 +473,7 @@ export const product: (
         id: "isdugfhud",
         name: "Attachment",
         inputType: AttributeInputTypeEnum.DROPDOWN,
+        valueRequired: false,
         unit: null,
         choices: {
           __typename: "AttributeValueCountableConnection",
@@ -512,6 +514,7 @@ export const product: (
         id: "pta18161",
         name: "Color",
         inputType: AttributeInputTypeEnum.DROPDOWN,
+        valueRequired: false,
         unit: null,
         choices: {
           __typename: "AttributeValueCountableConnection",
@@ -595,6 +598,7 @@ export const product: (
       __typename: "ProductVariant",
       channelListings: [],
       id: "pv75934",
+      quantityLimitPerCustomer: 30,
       margin: 2,
       media: [
         {
@@ -640,6 +644,7 @@ export const product: (
     },
     {
       __typename: "ProductVariant",
+      quantityLimitPerCustomer: null,
       channelListings: [
         {
           __typename: "ProductVariantChannelListing",
@@ -737,7 +742,7 @@ export const product: (
 });
 export const products = (
   placeholderImage: string
-): ProductList_products_edges_node[] => [
+): RelayToFlat<ProductListQuery["products"]> => [
   {
     __typename: "Product",
     updatedAt: "2020-06-22T13:52:05.094636+00:00",
@@ -1029,7 +1034,6 @@ export const products = (
             name: "Pineapple",
             reference: null,
             slug: "pineapple",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -1143,7 +1147,6 @@ export const products = (
             name: "Coconut",
             reference: null,
             slug: "coconut",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -1257,7 +1260,6 @@ export const products = (
             name: "Apple",
             reference: null,
             slug: "apple",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -1372,7 +1374,6 @@ export const products = (
             name: "Orange",
             reference: null,
             slug: "orange",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -1486,7 +1487,6 @@ export const products = (
             name: "Banana",
             reference: null,
             slug: "banana",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -1600,7 +1600,6 @@ export const products = (
             name: "Bean",
             reference: null,
             slug: "bean",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -1714,7 +1713,6 @@ export const products = (
             name: "Carrot",
             reference: null,
             slug: "carrot",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -1828,7 +1826,6 @@ export const products = (
             name: "Sprouty",
             reference: null,
             slug: "sprouty",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -1942,7 +1939,6 @@ export const products = (
             name: "Cotton",
             reference: null,
             slug: "cotton",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -2056,7 +2052,6 @@ export const products = (
             name: "Cotton",
             reference: null,
             slug: "cotton",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -2170,7 +2165,6 @@ export const products = (
             name: "Cotton",
             reference: null,
             slug: "cotton",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -2284,7 +2278,6 @@ export const products = (
             name: "Cotton",
             reference: null,
             slug: "cotton",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -2398,7 +2391,6 @@ export const products = (
             name: "Cotton",
             reference: null,
             slug: "cotton",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -2512,7 +2504,6 @@ export const products = (
             name: "Cotton",
             reference: null,
             slug: "cotton",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -2626,7 +2617,6 @@ export const products = (
             name: "Cotton",
             reference: null,
             slug: "cotton",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -2740,7 +2730,6 @@ export const products = (
             name: "Cotton",
             reference: null,
             slug: "cotton",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -2854,7 +2843,6 @@ export const products = (
             name: "Cotton",
             reference: null,
             slug: "cotton",
-            richText: null,
             boolean: null,
             date: null,
             dateTime: null,
@@ -2952,7 +2940,7 @@ export const products = (
   }
 ];
 
-export const variant = (placeholderImage: string): ProductVariant => ({
+export const variant = (placeholderImage: string): ProductVariantFragment => ({
   __typename: "ProductVariant",
   channelListings: [
     {
@@ -3005,6 +2993,7 @@ export const variant = (placeholderImage: string): ProductVariant => ({
     }
   ],
   id: "var1",
+  quantityLimitPerCustomer: 300,
   media: [
     {
       __typename: "ProductMedia",
@@ -3123,28 +3112,6 @@ export const variant = (placeholderImage: string): ProductVariant => ({
           currencyCode: "USD",
           id: "test1",
           name: "Test channel"
-        },
-        pricing: {
-          __typename: "ProductPricingInfo",
-          priceRange: {
-            __typename: "TaxedMoneyRange",
-            start: {
-              __typename: "TaxedMoney",
-              net: {
-                __typename: "Money",
-                amount: 1.2,
-                currency: "USD"
-              }
-            },
-            stop: {
-              __typename: "TaxedMoney",
-              net: {
-                __typename: "Money",
-                amount: 3.5,
-                currency: "USD"
-              }
-            }
-          }
         }
       },
       {
@@ -3156,28 +3123,6 @@ export const variant = (placeholderImage: string): ProductVariant => ({
           currencyCode: "USD",
           id: "test2",
           name: "Test channel other"
-        },
-        pricing: {
-          __typename: "ProductPricingInfo",
-          priceRange: {
-            __typename: "TaxedMoneyRange",
-            start: {
-              __typename: "TaxedMoney",
-              net: {
-                __typename: "Money",
-                amount: 1.2,
-                currency: "USD"
-              }
-            },
-            stop: {
-              __typename: "TaxedMoney",
-              net: {
-                __typename: "Money",
-                amount: 3.5,
-                currency: "USD"
-              }
-            }
-          }
         }
       }
     ],

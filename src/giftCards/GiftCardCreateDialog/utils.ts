@@ -1,7 +1,12 @@
-import { TimePeriodTypeEnum } from "@saleor/types/globalTypes";
+import { IMessage } from "@saleor/components/messages";
+import { GiftCardCreateMutation, TimePeriodTypeEnum } from "@saleor/graphql";
+import commonErrorMessages from "@saleor/utils/errors/common";
 import moment from "moment-timezone";
+import { IntlShape } from "react-intl";
 
-import { GiftCardCreateFormData } from "./GiftCardCreateDialogForm";
+import { GiftCardCreateCommonFormData } from "../GiftCardBulkCreateDialog/types";
+import { giftCardUpdateFormMessages } from "../GiftCardsList/messages";
+import { giftCardCreateMessages as messages } from "./messages";
 
 const addToCurrentDate = (
   currentDate: number,
@@ -28,6 +33,39 @@ export const getExpiryPeriodTerminationDate = (
   }
 };
 
+export const getGiftCardExpiryError = (intl: IntlShape): IMessage => ({
+  title: intl.formatMessage(
+    giftCardUpdateFormMessages.giftCardInvalidExpiryDateHeader
+  ),
+  text: intl.formatMessage(
+    giftCardUpdateFormMessages.giftCardInvalidExpiryDateContent
+  ),
+  status: "error"
+});
+
+export const getGiftCardCreateOnCompletedMessage = (
+  errors: GiftCardCreateMutation["giftCardCreate"]["errors"],
+  intl: IntlShape,
+  successMessage?: IMessage
+): IMessage => {
+  const hasExpiryError = errors.some(error => error.field === "expiryDate");
+  const successGiftCardMessage = successMessage || {
+    status: "success",
+    text: intl.formatMessage(messages.createdSuccessAlertTitle)
+  };
+
+  if (hasExpiryError) {
+    return getGiftCardExpiryError(intl);
+  }
+
+  return !!errors?.length
+    ? {
+        status: "error",
+        text: intl.formatMessage(commonErrorMessages.unknownError)
+      }
+    : successGiftCardMessage;
+};
+
 export const getGiftCardExpiryInputData = (
   {
     expirySelected,
@@ -35,7 +73,7 @@ export const getGiftCardExpiryInputData = (
     expiryDate,
     expiryPeriodAmount,
     expiryPeriodType
-  }: GiftCardCreateFormData,
+  }: GiftCardCreateCommonFormData,
   currentDate: number
 ): string => {
   if (!expirySelected) {

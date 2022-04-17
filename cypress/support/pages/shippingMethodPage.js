@@ -10,10 +10,28 @@ export function createShippingZone(
   country,
   channelName
 ) {
-  cy.get(SHIPPING_ZONES_LIST.addShippingZone)
+  cy.get(SHIPPING_ZONES_LIST.addShippingZone).click();
+  fillUpShippingZoneData({
+    shippingName,
+    warehouseName,
+    country,
+    channelName
+  });
+}
+
+export function fillUpShippingZoneData({
+  shippingName,
+  warehouseName,
+  country,
+  channelName
+}) {
+  cy.get(SHIPPING_ZONE_DETAILS.nameInput)
+    .clearAndType(shippingName)
+    .get(SHIPPING_ZONE_DETAILS.descriptionInput)
+    .clearAndType(shippingName)
+    .get(BUTTON_SELECTORS.confirm)
     .click()
-    .get(SHIPPING_ZONE_DETAILS.nameInput)
-    .type(shippingName)
+    .confirmationMessageShouldDisappear()
     .get(SHIPPING_ZONE_DETAILS.assignCountryButton)
     .click()
     .get(SHIPPING_ZONE_DETAILS.searchInput)
@@ -32,7 +50,8 @@ export function createShippingZone(
     .type(warehouseName)
     .get(SHIPPING_ZONE_DETAILS.autocompleteContentDialog)
     .scrollTo("bottom");
-  cy.contains(SHIPPING_ZONE_DETAILS.option, warehouseName)
+  return cy
+    .contains(SHIPPING_ZONE_DETAILS.option, warehouseName)
     .click({ force: true })
     .get(SHIPPING_ZONE_DETAILS.channelSelector)
     .click()
@@ -61,14 +80,16 @@ export function createShippingRate({
   price,
   rateOption,
   weightLimits,
-  deliveryTime
+  deliveryTime,
+  priceLimits
 }) {
   enterAndFillUpShippingRate({
     rateName,
     price,
     rateOption,
     weightLimits,
-    deliveryTime
+    deliveryTime,
+    priceLimits
   });
   return saveRate();
 }
@@ -78,23 +99,42 @@ export function enterAndFillUpShippingRate({
   price,
   rateOption,
   weightLimits,
+  priceLimits,
   deliveryTime
 }) {
-  cy.get(rateOption)
-    .click()
-    .waitForProgressBarToNotBeVisible()
+  cy.get(rateOption).click();
+  fillUpShippingRate({
+    rateName,
+    price,
+    weightLimits,
+    priceLimits,
+    deliveryTime
+  });
+}
+
+export function fillUpShippingRate({
+  rateName,
+  price,
+  weightLimits,
+  priceLimits,
+  deliveryTime
+}) {
+  cy.waitForProgressBarToNotBeVisible()
     .get(SHARED_ELEMENTS.richTextEditor.empty)
     .should("exist")
     .get(SHIPPING_RATE_DETAILS.inputName)
-    .type(rateName);
+    .clearAndType(rateName);
   if (deliveryTime) {
     fillUpDeliveryTime(deliveryTime);
   }
   if (weightLimits) {
-    fillUpWeightLimits(weightLimits);
+    fillUpLimits(weightLimits);
+  }
+  if (priceLimits) {
+    fillUpLimits(priceLimits);
   }
   cy.get(SHIPPING_RATE_DETAILS.priceInput).each($priceInput => {
-    cy.wrap($priceInput).type(price);
+    cy.wrap($priceInput).clearAndType(price);
   });
 }
 
@@ -132,18 +172,27 @@ export function saveRate() {
     .its("response.body.0.data.shippingZone");
 }
 
-export function fillUpWeightLimits({ max, min }) {
-  cy.get(SHIPPING_RATE_DETAILS.minWeightInput)
+export function saveRateAfterUpdate() {
+  return cy
+    .addAliasToGraphRequest("ShippingMethodChannelListingUpdate")
+    .get(BUTTON_SELECTORS.confirm)
+    .click()
+    .confirmationMessageShouldDisappear()
+    .waitForRequestAndCheckIfNoErrors(`@ShippingMethodChannelListingUpdate`);
+}
+
+export function fillUpLimits({ max, min }) {
+  cy.get(SHIPPING_RATE_DETAILS.minValueInput)
     .type(min)
-    .get(SHIPPING_RATE_DETAILS.maxWeightInput)
+    .get(SHIPPING_RATE_DETAILS.maxValueInput)
     .type(max);
 }
 
 export function fillUpDeliveryTime({ min, max }) {
   cy.get(SHIPPING_RATE_DETAILS.minDeliveryTimeInput)
-    .type(min)
+    .clearAndType(min)
     .get(SHIPPING_RATE_DETAILS.maxDeliveryTimeInput)
-    .type(max);
+    .clearAndType(max);
 }
 
 export const rateOptions = {

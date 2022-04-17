@@ -1,11 +1,11 @@
-import gql from "graphql-tag";
+import { gql } from "@apollo/client";
 
 export const metadataFragment = gql`
   fragment MetadataItem on MetadataItem {
     key
     value
   }
-  fragment MetadataFragment on ObjectWithMetadata {
+  fragment Metadata on ObjectWithMetadata {
     metadata {
       ...MetadataItem
     }

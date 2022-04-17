@@ -1,14 +1,12 @@
-import { pageInfoFragment } from "@saleor/fragments/pageInfo";
-import makeTopLevelSearch from "@saleor/hooks/makeTopLevelSearch";
-import gql from "graphql-tag";
-
+import { gql } from "@apollo/client";
 import {
-  SearchStaffMembers,
-  SearchStaffMembersVariables
-} from "./types/SearchStaffMembers";
+  SearchStaffMembersDocument,
+  SearchStaffMembersQuery,
+  SearchStaffMembersQueryVariables
+} from "@saleor/graphql";
+import makeTopLevelSearch from "@saleor/hooks/makeTopLevelSearch";
 
 export const searchStaffMembers = gql`
-  ${pageInfoFragment}
   query SearchStaffMembers($after: String, $first: Int!, $query: String!) {
     search: staffUsers(
       after: $after
@@ -29,13 +27,13 @@ export const searchStaffMembers = gql`
         }
       }
       pageInfo {
-        ...PageInfoFragment
+        ...PageInfo
       }
     }
   }
 `;
 
 export default makeTopLevelSearch<
-  SearchStaffMembers,
-  SearchStaffMembersVariables
->(searchStaffMembers);
+  SearchStaffMembersQuery,
+  SearchStaffMembersQueryVariables
+>(SearchStaffMembersDocument);

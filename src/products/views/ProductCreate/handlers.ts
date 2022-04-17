@@ -1,3 +1,4 @@
+import { FetchResult } from "@apollo/client";
 import {
   getAttributesAfterFileAttributesUpdate,
   mergeFileUploadErrors
@@ -8,37 +9,26 @@ import {
 } from "@saleor/attributes/utils/handlers";
 import { ChannelData } from "@saleor/channels/utils";
 import {
-  FileUpload,
-  FileUploadVariables
-} from "@saleor/files/types/FileUpload";
-import { AttributeErrorFragment } from "@saleor/fragments/types/AttributeErrorFragment";
-import { UploadErrorFragment } from "@saleor/fragments/types/UploadErrorFragment";
+  AttributeErrorFragment,
+  FileUploadMutation,
+  FileUploadMutationVariables,
+  ProductChannelListingUpdateMutation,
+  ProductChannelListingUpdateMutationVariables,
+  ProductCreateMutation,
+  ProductCreateMutationVariables,
+  ProductDeleteMutation,
+  ProductDeleteMutationVariables,
+  ProductTypeQuery,
+  ProductVariantChannelListingUpdateMutation,
+  ProductVariantChannelListingUpdateMutationVariables,
+  UploadErrorFragment,
+  VariantCreateMutation,
+  VariantCreateMutationVariables
+} from "@saleor/graphql";
 import { weight } from "@saleor/misc";
 import { ProductCreateData } from "@saleor/products/components/ProductCreatePage/form";
-import {
-  ProductChannelListingUpdate,
-  ProductChannelListingUpdateVariables
-} from "@saleor/products/types/ProductChannelListingUpdate";
-import {
-  ProductCreate,
-  ProductCreateVariables
-} from "@saleor/products/types/ProductCreate";
-import {
-  ProductDelete,
-  ProductDeleteVariables
-} from "@saleor/products/types/ProductDelete";
-import { ProductType_productType } from "@saleor/products/types/ProductType";
-import {
-  ProductVariantChannelListingUpdate,
-  ProductVariantChannelListingUpdateVariables
-} from "@saleor/products/types/ProductVariantChannelListingUpdate";
-import {
-  VariantCreate,
-  VariantCreateVariables
-} from "@saleor/products/types/VariantCreate";
 import { getAvailabilityVariables } from "@saleor/products/utils/handlers";
 import { getParsedDataForJsonStringField } from "@saleor/utils/richText/misc";
-import { MutationFetchResult } from "react-apollo";
 
 const getChannelsVariables = (productId: string, channels: ChannelData[]) => ({
   variables: {
@@ -74,25 +64,25 @@ const getSimpleProductVariables = (
 });
 
 export function createHandler(
-  productType: ProductType_productType,
+  productType: ProductTypeQuery["productType"],
   uploadFile: (
-    variables: FileUploadVariables
-  ) => Promise<MutationFetchResult<FileUpload>>,
+    variables: FileUploadMutationVariables
+  ) => Promise<FetchResult<FileUploadMutation>>,
   productCreate: (
-    variables: ProductCreateVariables
-  ) => Promise<MutationFetchResult<ProductCreate>>,
+    variables: ProductCreateMutationVariables
+  ) => Promise<FetchResult<ProductCreateMutation>>,
   productVariantCreate: (
-    variables: VariantCreateVariables
-  ) => Promise<MutationFetchResult<VariantCreate>>,
+    variables: VariantCreateMutationVariables
+  ) => Promise<FetchResult<VariantCreateMutation>>,
   updateChannels: (options: {
-    variables: ProductChannelListingUpdateVariables;
-  }) => Promise<MutationFetchResult<ProductChannelListingUpdate>>,
+    variables: ProductChannelListingUpdateMutationVariables;
+  }) => Promise<FetchResult<ProductChannelListingUpdateMutation>>,
   updateVariantChannels: (options: {
-    variables: ProductVariantChannelListingUpdateVariables;
-  }) => Promise<MutationFetchResult<ProductVariantChannelListingUpdate>>,
+    variables: ProductVariantChannelListingUpdateMutationVariables;
+  }) => Promise<FetchResult<ProductVariantChannelListingUpdateMutation>>,
   productDelete: (options: {
-    variables: ProductDeleteVariables;
-  }) => Promise<MutationFetchResult<ProductDelete>>
+    variables: ProductDeleteMutationVariables;
+  }) => Promise<FetchResult<ProductDeleteMutation>>
 ) {
   return async (formData: ProductCreateData) => {
     let errors: Array<AttributeErrorFragment | UploadErrorFragment> = [];
@@ -108,7 +98,7 @@ export function createHandler(
       uploadFilesResult
     );
 
-    const productVariables: ProductCreateVariables = {
+    const productVariables: ProductCreateMutationVariables = {
       input: {
         attributes: prepareAttributesInput({
           attributes: formData.attributes,
@@ -132,13 +122,14 @@ export function createHandler(
     };
 
     const result = await productCreate(productVariables);
+
     let hasErrors = errors.length > 0;
 
-    const hasVariants = productType.hasVariants;
-    const productId = result.data.productCreate.product?.id;
+    const hasVariants = productType?.hasVariants;
+    const productId = result?.data?.productCreate?.product?.id;
 
     if (!productId) {
-      return null;
+      return { errors };
     }
 
     if (!hasVariants) {
@@ -185,8 +176,8 @@ export function createHandler(
     if (productId && hasErrors) {
       await productDelete({ variables: { id: productId } });
 
-      return null;
+      return { errors };
     }
-    return productId || null;
+    return { id: productId || null, errors };
   };
 }

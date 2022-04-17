@@ -26,7 +26,12 @@ import FilterContentHeader from "./FilterContentHeader";
 import FilterErrorsList from "./FilterErrorsList";
 
 const useExpanderStyles = makeStyles(
-  () => ({
+  theme => ({
+    btn: {
+      border: "none",
+      marginRight: theme.spacing(1)
+    },
+
     expanded: {},
     root: {
       boxShadow: "none",
@@ -193,7 +198,7 @@ const FilterContent: React.FC<FilterContentProps> = ({
   };
 
   return (
-    <Paper>
+    <Paper elevation={8}>
       <form
         onSubmit={event => {
           event.preventDefault();
@@ -211,21 +216,28 @@ const FilterContent: React.FC<FilterContentProps> = ({
               <Accordion
                 key={filter.name}
                 classes={expanderClasses}
-                data-test="channel-availability-item"
-                data-test-id={filter.name}
+                data-test-id={"channel-availability-item-" + filter.name}
                 expanded={filter.name === openedFilter?.name}
               >
                 <AccordionSummary
+                  IconButtonProps={{
+                    classes: {
+                      root: expanderClasses.btn
+                    },
+                    disableRipple: true
+                  }}
                   expandIcon={<IconChevronDown />}
                   classes={summaryClasses}
                   onClick={() => handleFilterOpen(filter)}
                 >
-                  <FilterContentBodyNameField
-                    filter={currentFilter}
-                    onFilterPropertyChange={action =>
-                      handleFilterPropertyGroupChange(action, filter)
-                    }
-                  />
+                  {currentFilter && (
+                    <FilterContentBodyNameField
+                      filter={currentFilter}
+                      onFilterPropertyChange={action =>
+                        handleFilterPropertyGroupChange(action, filter)
+                      }
+                    />
+                  )}
                 </AccordionSummary>
                 {currentFilter?.active && (
                   <FilterErrorsList
@@ -245,7 +257,7 @@ const FilterContent: React.FC<FilterContentProps> = ({
                         }
                         filter={{
                           ...getFilterFromCurrentData(filterField),
-                          active: currentFilter.active
+                          active: currentFilter?.active
                         }}
                       >
                         <Typography>{filterField.label}</Typography>

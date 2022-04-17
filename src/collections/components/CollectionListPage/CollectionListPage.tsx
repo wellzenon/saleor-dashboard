@@ -1,23 +1,22 @@
-import { Button, Card } from "@material-ui/core";
-import { CollectionListUrlSortField } from "@saleor/collections/urls";
+import { Card } from "@material-ui/core";
 import { Container } from "@saleor/components/Container";
+import { getByName } from "@saleor/components/Filter/utils";
 import FilterBar from "@saleor/components/FilterBar";
 import PageHeader from "@saleor/components/PageHeader";
 import { sectionNames } from "@saleor/intl";
+import { Button } from "@saleor/macaw-ui";
 import {
-  ChannelProps,
   FilterPageProps,
-  ListActions,
   PageListProps,
   SearchPageProps,
-  SortPage,
   TabPageProps
 } from "@saleor/types";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { CollectionList_collections_edges_node } from "../../types/CollectionList";
-import CollectionList from "../CollectionList/CollectionList";
+import CollectionList, {
+  CollectionListProps
+} from "../CollectionList/CollectionList";
 import {
   CollectionFilterKeys,
   CollectionListFilterOpts,
@@ -25,13 +24,10 @@ import {
 } from "./filters";
 export interface CollectionListPageProps
   extends PageListProps,
-    ListActions,
     SearchPageProps,
-    SortPage<CollectionListUrlSortField>,
     TabPageProps,
     FilterPageProps<CollectionFilterKeys, CollectionListFilterOpts>,
-    ChannelProps {
-  collections: CollectionList_collections_edges_node[];
+    CollectionListProps {
   channelsCount: number;
 }
 
@@ -56,13 +52,14 @@ const CollectionListPage: React.FC<CollectionListPageProps> = ({
   const intl = useIntl();
   const filterStructure = createFilterStructure(intl, filterOpts);
 
+  const filterDependency = filterStructure.find(getByName("channel"));
+
   return (
     <Container>
       <PageHeader title={intl.formatMessage(sectionNames.collections)}>
         <Button
-          color="primary"
           disabled={disabled}
-          variant="contained"
+          variant="primary"
           onClick={onAdd}
           data-test-id="create-collection"
         >
@@ -95,8 +92,8 @@ const CollectionListPage: React.FC<CollectionListPageProps> = ({
         />
         <CollectionList
           disabled={disabled}
-          channelsCount={channelsCount}
           selectedChannelId={selectedChannelId}
+          filterDependency={filterDependency}
           {...listProps}
         />
       </Card>

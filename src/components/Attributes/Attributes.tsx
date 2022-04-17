@@ -1,19 +1,20 @@
-import { Card, CardContent, IconButton, Typography } from "@material-ui/core";
+import { Card, CardContent, Typography } from "@material-ui/core";
 import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
 import { AttributeReference } from "@saleor/attributes/utils/data";
 import CardTitle from "@saleor/components/CardTitle";
 import Hr from "@saleor/components/Hr";
-import { AttributeValueFragment } from "@saleor/fragments/types/AttributeValueFragment";
-import { PageErrorWithAttributesFragment } from "@saleor/fragments/types/PageErrorWithAttributesFragment";
-import { ProductErrorWithAttributesFragment } from "@saleor/fragments/types/ProductErrorWithAttributesFragment";
-import { FormsetAtomicData } from "@saleor/hooks/useFormset";
-import { makeStyles } from "@saleor/macaw-ui";
-import { FetchMoreProps } from "@saleor/types";
 import {
   AttributeEntityTypeEnum,
   AttributeInputTypeEnum,
-  MeasurementUnitsEnum
-} from "@saleor/types/globalTypes";
+  AttributeValueDetailsFragment,
+  AttributeValueFragment,
+  MeasurementUnitsEnum,
+  PageErrorWithAttributesFragment,
+  ProductErrorWithAttributesFragment
+} from "@saleor/graphql";
+import { FormsetAtomicData } from "@saleor/hooks/useFormset";
+import { IconButton, makeStyles } from "@saleor/macaw-ui";
+import { FetchMoreProps } from "@saleor/types";
 import classNames from "classnames";
 import React from "react";
 import { defineMessages, FormattedMessage, useIntl } from "react-intl";
@@ -27,8 +28,8 @@ export interface AttributeInputData {
   unit?: MeasurementUnitsEnum | null;
   variantAttributeScope?: VariantAttributeScope;
   isRequired: boolean;
-  values: AttributeValueFragment[];
-  selectedValues?: AttributeValueFragment[];
+  values: AttributeValueDetailsFragment[];
+  selectedValues?: AttributeValueDetailsFragment[];
   references?: AttributeReference[];
 }
 export type AttributeInput = FormsetAtomicData<AttributeInputData, string[]>;
@@ -65,7 +66,7 @@ const useStyles = makeStyles(
     },
     cardContent: {
       "&:last-child": {
-        paddingBottom: theme.spacing(1)
+        paddingBottom: theme.spacing(2)
       },
       paddingTop: theme.spacing(1)
     },
@@ -143,9 +144,10 @@ const Attributes: React.FC<AttributesProps> = ({
             </Typography>
           </div>
           <IconButton
+            variant="secondary"
             className={classes.expansionBarButton}
             onClick={toggleExpansion}
-            data-test="attributes-expand"
+            data-test-id="attributes-expand"
           >
             <ArrowDropDownIcon
               className={classNames(classes.expansionBarButtonIcon, {

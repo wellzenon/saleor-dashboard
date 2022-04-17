@@ -1,5 +1,4 @@
 import {
-  Button,
   Dialog,
   DialogActions,
   DialogContent,
@@ -10,21 +9,22 @@ import {
   TextField,
   Typography
 } from "@material-ui/core";
+import BackButton from "@saleor/components/BackButton";
 import Checkbox from "@saleor/components/Checkbox";
-import ConfirmButton, {
-  ConfirmButtonTransitionState
-} from "@saleor/components/ConfirmButton";
+import ConfirmButton from "@saleor/components/ConfirmButton";
 import Form from "@saleor/components/Form";
 import FormSpacer from "@saleor/components/FormSpacer";
 import Hr from "@saleor/components/Hr";
 import ResponsiveTable from "@saleor/components/ResponsiveTable";
-// tslint:disable no-submodule-imports
-import { ShopInfo_shop_countries } from "@saleor/components/Shop/types/ShopInfo";
-import { buttonMessages } from "@saleor/intl";
-import { makeStyles } from "@saleor/macaw-ui";
+import { CountryWithCodeFragment } from "@saleor/graphql";
+import { SubmitPromise } from "@saleor/hooks/useForm";
+import { ConfirmButtonTransitionState } from "@saleor/macaw-ui";
+import useScrollableDialogStyle from "@saleor/styles/useScrollableDialogStyle";
 import { filter } from "fuzzaldrin";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
+
+import { useStyles } from "./styles";
 
 interface FormData {
   allCountries: boolean;
@@ -34,36 +34,13 @@ interface FormData {
 
 export interface DiscountCountrySelectDialogProps {
   confirmButtonState: ConfirmButtonTransitionState;
-  countries: ShopInfo_shop_countries[];
+  countries: CountryWithCodeFragment[];
   initial: string[];
   open: boolean;
   onClose: () => void;
-  onConfirm: (data: FormData) => void;
+  onConfirm: (data: FormData) => SubmitPromise;
 }
 
-const useStyles = makeStyles(
-  theme => ({
-    checkboxCell: {
-      paddingLeft: 0
-    },
-    containerTitle: {
-      padding: theme.spacing(1.25, 0)
-    },
-    container: {
-      maxHeight: 500,
-      paddingTop: 0,
-      marginBottom: theme.spacing(3)
-    },
-    heading: {
-      marginBottom: theme.spacing(1),
-      marginTop: theme.spacing(2)
-    },
-    wideCell: {
-      width: "100%"
-    }
-  }),
-  { name: "DiscountCountrySelectDialog" }
-);
 const DiscountCountrySelectDialog: React.FC<DiscountCountrySelectDialogProps> = props => {
   const {
     confirmButtonState,
@@ -74,6 +51,7 @@ const DiscountCountrySelectDialog: React.FC<DiscountCountrySelectDialogProps> = 
     onConfirm
   } = props;
   const classes = useStyles(props);
+  const scrollableDialogClasses = useScrollableDialogStyle();
 
   const intl = useIntl();
 
@@ -84,7 +62,11 @@ const DiscountCountrySelectDialog: React.FC<DiscountCountrySelectDialogProps> = 
   };
   return (
     <Dialog onClose={onClose} open={open} fullWidth maxWidth="sm">
-      <Form initial={initialForm} onSubmit={onConfirm}>
+      <Form
+        initial={initialForm}
+        onSubmit={onConfirm}
+        className={scrollableDialogClasses.form}
+      >
         {({ data, change }) => {
           const countrySelectionMap = countries.reduce((acc, country) => {
             acc[country.code] = !!data.countries.find(
@@ -109,7 +91,9 @@ const DiscountCountrySelectDialog: React.FC<DiscountCountrySelectDialogProps> = 
                 <TextField
                   name="query"
                   value={data.query}
-                  onChange={event => change(event, () => fetch(data.query))}
+                  onChange={event =>
+                    change(event /* TO BE CHECKED: () => fetch(data.query)*/)
+                  }
                   label={intl.formatMessage({
                     defaultMessage: "Filter Countries",
                     description: "search box label"
@@ -120,18 +104,17 @@ const DiscountCountrySelectDialog: React.FC<DiscountCountrySelectDialogProps> = 
                   })}
                   fullWidth
                 />
-              </DialogContent>
-              <Hr />
-
-              <DialogContent className={classes.containerTitle}>
-                <Typography className={classes.heading} variant="subtitle1">
+                <FormSpacer />
+                <Hr />
+                <FormSpacer />
+                <Typography variant="subtitle1">
                   <FormattedMessage
                     defaultMessage="Countries A to Z"
                     description="country selection"
                   />
                 </Typography>
               </DialogContent>
-              <DialogContent className={classes.container}>
+              <DialogContent className={scrollableDialogClasses.scrollArea}>
                 <ResponsiveTable>
                   <TableBody>
                     {filter(countries, data.query, {
@@ -177,13 +160,9 @@ const DiscountCountrySelectDialog: React.FC<DiscountCountrySelectDialogProps> = 
                 </ResponsiveTable>
               </DialogContent>
               <DialogActions>
-                <Button onClick={onClose}>
-                  <FormattedMessage {...buttonMessages.back} />
-                </Button>
+                <BackButton onClick={onClose} />
                 <ConfirmButton
                   transitionState={confirmButtonState}
-                  color="primary"
-                  variant="contained"
                   type="submit"
                 >
                   <FormattedMessage

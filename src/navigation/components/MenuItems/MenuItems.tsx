@@ -1,25 +1,22 @@
-import {
-  Button,
-  Card,
-  CardActions,
-  IconButton,
-  Paper,
-  Typography
-} from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
+import { Card, CardActions, Paper, Typography } from "@material-ui/core";
 import EditIcon from "@material-ui/icons/Edit";
 import CardTitle from "@saleor/components/CardTitle";
 import Skeleton from "@saleor/components/Skeleton";
+import { MenuDetailsFragment } from "@saleor/graphql";
 import { buttonMessages } from "@saleor/intl";
-import { useTheme } from "@saleor/macaw-ui";
-import { makeStyles } from "@saleor/macaw-ui";
+import {
+  Button,
+  DeleteIcon,
+  IconButton,
+  makeStyles,
+  useTheme
+} from "@saleor/macaw-ui";
 import classNames from "classnames";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import SortableTree, { NodeRendererProps, TreeItem } from "react-sortable-tree";
 
 import Draggable from "../../../icons/Draggable";
-import { MenuDetails_menu_items } from "../../types/MenuDetails";
 import { MenuItemType } from "../MenuItemDialog";
 import { getDiff, getNodeData, getNodeQuantity, TreeOperation } from "./tree";
 
@@ -28,8 +25,8 @@ const NODE_MARGIN = 40;
 
 export interface MenuItemsProps {
   canUndo: boolean;
-  items: MenuDetails_menu_items[];
-  onChange: (operation: TreeOperation) => void;
+  items: MenuDetailsFragment["items"];
+  onChange: (operations: TreeOperation[]) => void;
   onItemAdd: () => void;
   onItemClick: (id: string, type: MenuItemType) => void;
   onItemEdit: (id: string) => void;
@@ -39,6 +36,9 @@ export interface MenuItemsProps {
 const useStyles = makeStyles(
   theme => ({
     actions: {
+      "&&": {
+        padding: theme.spacing(2, 4)
+      },
       flexDirection: "row"
     },
     container: {
@@ -176,20 +176,22 @@ const Node: React.FC<NodeRendererProps> = props => {
           {node.title}
         </Typography>
         <div className={classes.spacer} />
-        <Button color="primary" onClick={node.onClick}>
+        <Button onClick={node.onClick}>
           <FormattedMessage {...buttonMessages.show} />
         </Button>
-        <IconButton color="primary" onClick={node.onEdit}>
+        <IconButton variant="secondary" onClick={node.onEdit}>
           <EditIcon />
         </IconButton>
         <IconButton
           className={classes.deleteButton}
-          color="primary"
+          variant="secondary"
           onClick={() =>
-            node.onChange({
-              id: node.id as any,
-              type: "remove"
-            })
+            node.onChange([
+              {
+                id: node.id,
+                type: "remove"
+              }
+            ])
           }
         >
           <DeleteIcon />
@@ -224,7 +226,7 @@ const MenuItems: React.FC<MenuItemsProps> = props => {
           id: "menuItemsHeader"
         })}
         toolbar={
-          <Button color="primary" disabled={!canUndo} onClick={onUndo}>
+          <Button disabled={!canUndo} onClick={onUndo}>
             <FormattedMessage {...buttonMessages.undo} />
           </Button>
         }
@@ -250,6 +252,7 @@ const MenuItems: React.FC<MenuItemsProps> = props => {
                 marginLeft: NODE_MARGIN * (path.length - 1)
               }
             })}
+            maxDepth={5}
             isVirtualized={false}
             rowHeight={NODE_HEIGHT}
             treeData={items.map(item =>
@@ -273,11 +276,7 @@ const MenuItems: React.FC<MenuItemsProps> = props => {
         )}
       </div>
       <CardActions className={classes.actions}>
-        <Button
-          color="primary"
-          onClick={onItemAdd}
-          data-test-id="createNewMenuItem"
-        >
+        <Button onClick={onItemAdd} data-test-id="create-new-menu-item">
           <FormattedMessage
             defaultMessage="Create new item"
             description="add new menu item"

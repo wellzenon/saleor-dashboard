@@ -1,9 +1,12 @@
-import { Button, Card } from "@material-ui/core";
+import { Card } from "@material-ui/core";
 import Container from "@saleor/components/Container";
+import { getByName } from "@saleor/components/Filter/utils";
 import FilterBar from "@saleor/components/FilterBar";
 import PageHeader from "@saleor/components/PageHeader";
 import { SaleListUrlSortField } from "@saleor/discounts/urls";
+import { SaleFragment } from "@saleor/graphql";
 import { sectionNames } from "@saleor/intl";
+import { Button } from "@saleor/macaw-ui";
 import {
   ChannelProps,
   FilterPageProps,
@@ -15,7 +18,6 @@ import {
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { SaleList_sales_edges_node } from "../../types/SaleList";
 import SaleList from "../SaleList";
 import {
   createFilterStructure,
@@ -30,7 +32,7 @@ export interface SaleListPageProps
     SortPage<SaleListUrlSortField>,
     TabPageProps,
     ChannelProps {
-  sales: SaleList_sales_edges_node[];
+  sales: SaleFragment[];
 }
 
 const SaleListPage: React.FC<SaleListPageProps> = ({
@@ -50,15 +52,12 @@ const SaleListPage: React.FC<SaleListPageProps> = ({
   const intl = useIntl();
   const structure = createFilterStructure(intl, filterOpts);
 
+  const filterDependency = structure.find(getByName("channel"));
+
   return (
     <Container>
       <PageHeader title={intl.formatMessage(sectionNames.sales)}>
-        <Button
-          onClick={onAdd}
-          variant="contained"
-          color="primary"
-          data-test-id="create-sale"
-        >
+        <Button onClick={onAdd} variant="primary" data-test-id="create-sale">
           <FormattedMessage defaultMessage="Create Sale" description="button" />
         </Button>
       </PageHeader>
@@ -82,7 +81,7 @@ const SaleListPage: React.FC<SaleListPageProps> = ({
           onTabDelete={onTabDelete}
           onTabSave={onTabSave}
         />
-        <SaleList {...listProps} />
+        <SaleList filterDependency={filterDependency} {...listProps} />
       </Card>
     </Container>
   );

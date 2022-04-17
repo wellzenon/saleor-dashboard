@@ -3,16 +3,19 @@ import CardSpacer from "@saleor/components/CardSpacer";
 import CardTitle from "@saleor/components/CardTitle";
 import { FormSpacer } from "@saleor/components/FormSpacer";
 import Hr from "@saleor/components/Hr";
+import Link from "@saleor/components/Link";
 import MultiAutocompleteSelectField, {
   MultiAutocompleteChoiceType
 } from "@saleor/components/MultiAutocompleteSelectField";
 import SingleAutocompleteSelectField, {
   SingleAutocompleteChoiceType
 } from "@saleor/components/SingleAutocompleteSelectField";
-import { ProductErrorFragment } from "@saleor/fragments/types/ProductErrorFragment";
+import { ProductErrorFragment } from "@saleor/graphql";
 import { ChangeEvent } from "@saleor/hooks/useForm";
+import { commonMessages } from "@saleor/intl";
 import { makeStyles } from "@saleor/macaw-ui";
 import { maybe } from "@saleor/misc";
+import { productTypeUrl } from "@saleor/productTypes/urls";
 import { FetchMoreProps } from "@saleor/types";
 import { getFormErrors, getProductErrorMessage } from "@saleor/utils/errors";
 import React from "react";
@@ -122,7 +125,7 @@ const ProductOrganization: React.FC<ProductOrganizationProps> = props => {
             value={data.productType?.id}
             onChange={onProductTypeChange}
             fetchChoices={fetchProductTypes}
-            data-test="product-type"
+            data-test-id="product-type"
             {...fetchMoreProductTypes}
           />
         ) : (
@@ -130,23 +133,24 @@ const ProductOrganization: React.FC<ProductOrganizationProps> = props => {
             <Typography className={classes.label} variant="caption">
               <FormattedMessage defaultMessage="Product Type" />
             </Typography>
-            <Typography>{maybe(() => productType.name, "...")}</Typography>
+            <Typography>
+              <Link
+                href={productTypeUrl(productType?.id) ?? ""}
+                disabled={!productType?.id}
+              >
+                {productType?.name ?? "..."}
+              </Link>
+            </Typography>
             <CardSpacer />
             <Typography className={classes.label} variant="caption">
-              <FormattedMessage defaultMessage="Product Type" />
+              <FormattedMessage defaultMessage="Configurable" />
             </Typography>
             <Typography>
               {maybe(
                 () =>
                   productType.hasVariants
-                    ? intl.formatMessage({
-                        defaultMessage: "Configurable",
-                        description: "product is configurable"
-                      })
-                    : intl.formatMessage({
-                        defaultMessage: "Simple",
-                        description: "product is not configurable"
-                      }),
+                    ? intl.formatMessage(commonMessages.yes)
+                    : intl.formatMessage(commonMessages.no),
                 "..."
               )}
             </Typography>
@@ -168,7 +172,7 @@ const ProductOrganization: React.FC<ProductOrganizationProps> = props => {
           value={data.category}
           onChange={onCategoryChange}
           fetchChoices={fetchCategories}
-          data-test="category"
+          data-test-id="category"
           {...fetchMoreCategories}
         />
         <FormSpacer />
@@ -193,7 +197,7 @@ const ProductOrganization: React.FC<ProductOrganizationProps> = props => {
           }
           onChange={onCollectionChange}
           fetchChoices={fetchCollections}
-          data-test="collections"
+          data-test-id="collections"
           testId="collection"
           {...fetchMoreCollections}
         />

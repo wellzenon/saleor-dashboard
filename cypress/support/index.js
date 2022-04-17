@@ -10,26 +10,19 @@ import "./customCommands/sharedElementsOperations/confirmationMessages.js";
 import "./customCommands/sharedElementsOperations/progressBar.js";
 import "./customCommands/sharedElementsOperations/selects.js";
 import "./customCommands/sharedElementsOperations/tables";
+import "./customCommands/sharedElementsOperations/deleteElement";
 import "cypress-mailhog";
 import "cypress-file-upload";
+import "cypress-mochawesome-reporter/register";
+
+import { commandTimings } from "cypress-timings";
+commandTimings();
 
 import { urlList } from "../fixtures/urlList";
 
 Cypress.Commands.add("clearSessionData", () => {
-  // Because of known cypress bug, not all local storage data are cleared.
-  // Here is workaround to ensure tests have no side effects.
-  // Suggested usage:
-  // beforeEach(() => {
-  //   cy.clearSessionData();
-  // });
-
   cy.clearCookies();
   cy.clearLocalStorage();
-  cy.visit(urlList.homePage, {
-    onBeforeLoad: win => {
-      win.sessionStorage.clear();
-    }
-  });
 });
 
 Cypress.Commands.add("addAliasToGraphRequest", operationName => {
@@ -50,19 +43,20 @@ Cypress.Commands.add("addAliasToGraphRequest", operationName => {
   });
 });
 
-Cypress.Commands.add("sendRequestWithQuery", (query, authorization = "auth") =>
-  cy.request({
-    body: {
+Cypress.Commands.add(
+  "sendRequestWithQuery",
+  (query, authorization = "auth", variables = "") =>
+    cy.request({
+      body: {
+        variables,
+        query
+      },
+      headers: {
+        Authorization: `JWT ${window.sessionStorage.getItem(authorization)}`
+      },
       method: "POST",
-      query,
       url: urlList.apiUri
-    },
-    headers: {
-      Authorization: `JWT ${window.sessionStorage.getItem(authorization)}`
-    },
-    method: "POST",
-    url: urlList.apiUri
-  })
+    })
 );
 Cypress.on(
   "uncaught:exception",

@@ -1,4 +1,4 @@
-import { PageInfoFragment } from "@saleor/fragments/types/PageInfoFragment";
+import { PageInfoFragment } from "@saleor/graphql";
 import { DocumentNode } from "graphql";
 
 import makeSearch, { SearchVariables, UseSearchHook } from "../makeSearch";
@@ -21,7 +21,7 @@ function makeTopLevelSearch<
   TVariables extends SearchVariables
 >(query: DocumentNode): UseSearchHook<TData, TVariables> {
   return makeSearch<TData, TVariables>(query, result => {
-    if (result.data.search.pageInfo.hasNextPage) {
+    if (result?.data?.search?.pageInfo?.hasNextPage) {
       result.loadMore(
         (prev, next) => {
           if (

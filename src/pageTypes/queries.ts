@@ -1,20 +1,6 @@
-import { pageInfoFragment } from "@saleor/fragments/pageInfo";
-import {
-  pageTypeDetailsFragment,
-  pageTypeFragment
-} from "@saleor/fragments/pageTypes";
-import makeQuery from "@saleor/hooks/makeQuery";
-import gql from "graphql-tag";
-
-import {
-  PageTypeDetails,
-  PageTypeDetailsVariables
-} from "./types/PageTypeDetails";
-import { PageTypeList, PageTypeListVariables } from "./types/PageTypeList";
+import { gql } from "@apollo/client";
 
 export const pageTypeListQuery = gql`
-  ${pageInfoFragment}
-  ${pageTypeFragment}
   query PageTypeList(
     $after: String
     $before: String
@@ -33,31 +19,20 @@ export const pageTypeListQuery = gql`
     ) {
       edges {
         node {
-          ...PageTypeFragment
-          hasPages
+          ...PageType
         }
       }
       pageInfo {
-        ...PageInfoFragment
+        ...PageInfo
       }
     }
   }
 `;
-export const usePageTypeListQuery = makeQuery<
-  PageTypeList,
-  PageTypeListVariables
->(pageTypeListQuery);
 
 export const pageTypeDetailsQuery = gql`
-  ${pageTypeDetailsFragment}
   query PageTypeDetails($id: ID!) {
     pageType(id: $id) {
-      ...PageTypeDetailsFragment
-      hasPages
+      ...PageTypeDetails
     }
   }
 `;
-export const usePageTypeDetailsQuery = makeQuery<
-  PageTypeDetails,
-  PageTypeDetailsVariables
->(pageTypeDetailsQuery);

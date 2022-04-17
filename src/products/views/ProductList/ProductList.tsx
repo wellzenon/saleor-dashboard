@@ -1,12 +1,11 @@
-import { DialogContentText, IconButton } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
+import { DialogContentText } from "@material-ui/core";
 import ActionDialog from "@saleor/components/ActionDialog";
 import useAppChannel from "@saleor/components/AppLayout/AppChannelContext";
 import DeleteFilterTabDialog from "@saleor/components/DeleteFilterTabDialog";
 import SaveFilterTabDialog, {
   SaveFilterTabDialogFormData
 } from "@saleor/components/SaveFilterTabDialog";
-import { useShopLimitsQuery } from "@saleor/components/Shop/query";
+import { useShopLimitsQuery } from "@saleor/components/Shop/queries";
 import {
   DEFAULT_INITIAL_PAGINATION_DATA,
   DEFAULT_INITIAL_SEARCH_DATA,
@@ -14,6 +13,20 @@ import {
   ProductListColumns
 } from "@saleor/config";
 import { Task } from "@saleor/containers/BackgroundTasks/types";
+import {
+  ProductListQueryVariables,
+  useAvailableInGridAttributesQuery,
+  useGridAttributesQuery,
+  useInitialProductFilterAttributesQuery,
+  useInitialProductFilterCategoriesQuery,
+  useInitialProductFilterCollectionsQuery,
+  useInitialProductFilterProductTypesQuery,
+  useProductBulkDeleteMutation,
+  useProductCountQuery,
+  useProductExportMutation,
+  useProductListQuery,
+  useWarehouseListQuery
+} from "@saleor/graphql";
 import useBackgroundTask from "@saleor/hooks/useBackgroundTask";
 import useBulkActions from "@saleor/hooks/useBulkActions";
 import useListSettings from "@saleor/hooks/useListSettings";
@@ -24,23 +37,13 @@ import usePaginator, {
   createPaginationState
 } from "@saleor/hooks/usePaginator";
 import { commonMessages } from "@saleor/intl";
+import { DeleteIcon, IconButton } from "@saleor/macaw-ui";
 import { maybe } from "@saleor/misc";
 import ProductExportDialog from "@saleor/products/components/ProductExportDialog";
 import {
   getAttributeIdFromColumnValue,
   isAttributeColumnValue
 } from "@saleor/products/components/ProductListPage/utils";
-import {
-  useAvailableInGridAttributesQuery,
-  useGridAttributesQuery,
-  useInitialProductFilterAttributesQuery,
-  useInitialProductFilterCategoriesQuery,
-  useInitialProductFilterCollectionsQuery,
-  useInitialProductFilterProductTypesQuery,
-  useProductCountQuery,
-  useProductListQuery
-} from "@saleor/products/queries";
-import { ProductListVariables } from "@saleor/products/types/ProductList";
 import {
   productAddUrl,
   productListUrl,
@@ -59,15 +62,10 @@ import createDialogActionHandlers from "@saleor/utils/handlers/dialogActionHandl
 import createFilterHandlers from "@saleor/utils/handlers/filterHandlers";
 import { mapEdgesToItems, mapNodeToChoice } from "@saleor/utils/maps";
 import { getSortUrlVariables } from "@saleor/utils/sort";
-import { useWarehouseList } from "@saleor/warehouses/queries";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import ProductListPage from "../../components/ProductListPage";
-import {
-  useProductBulkDeleteMutation,
-  useProductExport
-} from "../../mutations";
 import {
   deleteFilterTab,
   getActiveFilters,
@@ -78,7 +76,9 @@ import {
   getFilterVariables,
   saveFilterTab
 } from "./filters";
-import { canBeSorted, DEFAULT_SORT_KEY, getSortQueryVariables } from "./sort";
+import { getSortQueryVariables } from "./sort";
+import { useSortRedirects } from "./useSortRedirects";
+import { getAvailableProductKinds, getProductKindOpts } from "./utils";
 
 interface ProductListProps {
   params: ProductListUrlQueryParams;
@@ -159,12 +159,13 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
     },
     skip: !focusedAttribute
   });
-  const warehouses = useWarehouseList({
+  const warehouses = useWarehouseListQuery({
     variables: {
       first: 100
     },
     skip: params.action !== "export"
   });
+  const availableProductKinds = getAvailableProductKinds();
   const { availableChannels } = useAppChannel(false);
   const limitOpts = useShopLimitsQuery({
     variables: {
@@ -175,6 +176,8 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
   const selectedChannel = availableChannels.find(
     channel => channel.slug === params.channel
   );
+
+  useSortRedirects(params, !!selectedChannel);
 
   const [openModal, closeModal] = createDialogActionHandlers<
     ProductListUrlDialog,
@@ -189,7 +192,7 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
     skip: params.action !== "export"
   });
 
-  const [exportProducts, exportProductsOpts] = useProductExport({
+  const [exportProducts, exportProductsOpts] = useProductExportMutation({
     onCompleted: data => {
       if (data.exportProducts.errors.length === 0) {
         notify({
@@ -223,32 +226,6 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
     params
   });
 
-  useEffect(() => {
-    const sortWithQuery = ProductListUrlSortField.rank;
-    const sortWithoutQuery =
-      params.sort === ProductListUrlSortField.rank
-        ? DEFAULT_SORT_KEY
-        : params.sort;
-    navigate(
-      productListUrl({
-        ...params,
-        asc: params.query ? undefined : params.asc,
-        sort: params.query ? sortWithQuery : sortWithoutQuery
-      })
-    );
-  }, [params.query]);
-
-  useEffect(() => {
-    if (!canBeSorted(params.sort, !!selectedChannel)) {
-      navigate(
-        productListUrl({
-          ...params,
-          sort: DEFAULT_SORT_KEY
-        })
-      );
-    }
-  }, [params]);
-
   const handleTabChange = (tab: number) => {
     reset();
     navigate(
@@ -280,13 +257,16 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
       })
     );
 
+  const kindOpts = getProductKindOpts(availableProductKinds, intl);
   const paginationState = createPaginationState(settings.rowNumber, params);
   const channelOpts = availableChannels
     ? mapNodeToChoice(availableChannels, channel => channel.slug)
     : null;
   const filter = getFilterVariables(params, !!selectedChannel);
   const sort = getSortQueryVariables(params, !!selectedChannel);
-  const queryVariables = React.useMemo<ProductListVariables>(
+  const queryVariables = React.useMemo<
+    Omit<ProductListQueryVariables, "hasChannel" | "hasSelectedAttributes">
+  >(
     () => ({
       ...paginationState,
       filter,
@@ -295,22 +275,28 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
     }),
     [params, settings.rowNumber]
   );
-  // TODO: When channel is undefined we should skip detailed pricing listings
-  const { data, loading, refetch } = useProductListQuery({
-    displayLoader: true,
-    variables: queryVariables
-  });
 
   function filterColumnIds(columns: ProductListColumns[]) {
     return columns
       .filter(isAttributeColumnValue)
       .map(getAttributeIdFromColumnValue);
   }
+  const filteredColumnIds = filterColumnIds(settings.columns);
+
+  const { data, loading, refetch } = useProductListQuery({
+    displayLoader: true,
+    variables: {
+      ...queryVariables,
+      hasChannel: !!selectedChannel,
+      hasSelectedAttributes: filteredColumnIds.length > 0
+    }
+  });
+
   const availableInGridAttributes = useAvailableInGridAttributesQuery({
     variables: { first: 24 }
   });
   const gridAttributes = useGridAttributesQuery({
-    variables: { ids: filterColumnIds(settings.columns) }
+    variables: { ids: filteredColumnIds }
   });
 
   const [
@@ -347,6 +333,7 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
       initial: mapEdgesToItems(initialFilterProductTypes?.productTypes) || [],
       search: searchProductTypes
     },
+    kindOpts,
     channelOpts
   );
 
@@ -425,6 +412,7 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
         onAll={resetFilters}
         toolbar={
           <IconButton
+            variant="secondary"
             color="primary"
             onClick={() =>
               openModal("delete", {

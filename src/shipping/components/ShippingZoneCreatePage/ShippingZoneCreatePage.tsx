@@ -1,24 +1,22 @@
 import CardSpacer from "@saleor/components/CardSpacer";
-import { ConfirmButtonTransitionState } from "@saleor/components/ConfirmButton";
 import Container from "@saleor/components/Container";
 import CountryList from "@saleor/components/CountryList";
 import Form from "@saleor/components/Form";
 import Grid from "@saleor/components/Grid";
 import PageHeader from "@saleor/components/PageHeader";
 import Savebar from "@saleor/components/Savebar";
-import { CountryFragment } from "@saleor/fragments/types/CountryFragment";
-import { ShippingErrorFragment } from "@saleor/fragments/types/ShippingErrorFragment";
+import { CountryFragment, ShippingErrorFragment } from "@saleor/graphql";
+import { SubmitPromise } from "@saleor/hooks/useForm";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
+import { Backlink, ConfirmButtonTransitionState } from "@saleor/macaw-ui";
 import React from "react";
 import { defineMessages, useIntl } from "react-intl";
 
 import ShippingZoneCountriesAssignDialog from "../ShippingZoneCountriesAssignDialog";
 import ShippingZoneInfo from "../ShippingZoneInfo";
 
-export interface FormData {
+export interface ShippingZoneCreateFormData {
   countries: string[];
-  default: boolean;
   description: string;
   name: string;
 }
@@ -32,10 +30,6 @@ const messages = defineMessages({
     defaultMessage: "Create New Shipping Zone",
     description: "section header"
   },
-  defaultZone: {
-    defaultMessage:
-      "This is default shipping zone, which means that it covers all of the countries which are not assigned to other shipping zones"
-  },
   noCountriesAssigned: {
     defaultMessage:
       "Currently, there are no countries assigned to this shipping zone"
@@ -44,15 +38,17 @@ const messages = defineMessages({
 
 export interface ShippingZoneCreatePageProps {
   countries: CountryFragment[];
+  restWorldCountries: string[];
   disabled: boolean;
   errors: ShippingErrorFragment[];
   saveButtonBarState: ConfirmButtonTransitionState;
   onBack: () => void;
-  onSubmit: (data: FormData) => void;
+  onSubmit: (data: ShippingZoneCreateFormData) => SubmitPromise;
 }
 
 const ShippingZoneCreatePage: React.FC<ShippingZoneCreatePageProps> = ({
   countries,
+  restWorldCountries,
   disabled,
   errors,
   onBack,
@@ -63,16 +59,20 @@ const ShippingZoneCreatePage: React.FC<ShippingZoneCreatePageProps> = ({
   const [isModalOpened, setModalStatus] = React.useState(false);
   const toggleModal = () => setModalStatus(!isModalOpened);
 
-  const initialForm: FormData = {
+  const initialForm: ShippingZoneCreateFormData = {
     countries: [],
-    default: false,
     description: "",
     name: ""
   };
 
   return (
-    <Form initial={initialForm} onSubmit={onSubmit}>
-      {({ change, data, hasChanged, submit }) => (
+    <Form
+      confirmLeave
+      initial={initialForm}
+      onSubmit={onSubmit}
+      disabled={disabled}
+    >
+      {({ change, data, isSaveDisabled, submit }) => (
         <>
           <Container>
             <Backlink onClick={onBack}>
@@ -93,11 +93,7 @@ const ShippingZoneCreatePage: React.FC<ShippingZoneCreatePageProps> = ({
                     countries.find(country => country.code === selectedCountry)
                   )}
                   disabled={disabled}
-                  emptyText={
-                    data.default
-                      ? intl.formatMessage(messages.defaultZone)
-                      : intl.formatMessage(messages.noCountriesAssigned)
-                  }
+                  emptyText={intl.formatMessage(messages.noCountriesAssigned)}
                   onCountryAssign={toggleModal}
                   onCountryUnassign={countryCode =>
                     change({
@@ -114,7 +110,7 @@ const ShippingZoneCreatePage: React.FC<ShippingZoneCreatePageProps> = ({
               </div>
             </Grid>
             <Savebar
-              disabled={disabled || !hasChanged}
+              disabled={isSaveDisabled}
               onCancel={onBack}
               onSubmit={submit}
               state={saveButtonBarState}
@@ -126,15 +122,15 @@ const ShippingZoneCreatePage: React.FC<ShippingZoneCreatePageProps> = ({
               change({
                 target: {
                   name: "countries",
-                  value: formData.restOfTheWorld ? [] : formData.countries
+                  value: formData.countries
                 }
               } as any);
               toggleModal();
             }}
             confirmButtonState="default"
             countries={countries}
+            restWorldCountries={restWorldCountries}
             initial={data.countries}
-            isDefault={data.default}
             onClose={toggleModal}
           />
         </>

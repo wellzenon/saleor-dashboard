@@ -9,22 +9,30 @@ import {
   createFetchReferencesHandler
 } from "@saleor/attributes/utils/handlers";
 import { AttributeInput } from "@saleor/components/Attributes";
+import { useExitFormDialog } from "@saleor/components/Form/useExitFormDialog";
 import { MetadataFormData } from "@saleor/components/Metadata";
-import useForm, { FormChange, FormErrors } from "@saleor/hooks/useForm";
+import {
+  ProductVariantCreateDataQuery,
+  SearchPagesQuery,
+  SearchProductsQuery,
+  SearchWarehousesQuery
+} from "@saleor/graphql";
+import useForm, {
+  CommonUseFormResultWithHandlers,
+  FormChange,
+  FormErrors
+} from "@saleor/hooks/useForm";
 import useFormset, {
   FormsetChange,
   FormsetData
 } from "@saleor/hooks/useFormset";
+import useHandleFormSubmit from "@saleor/hooks/useHandleFormSubmit";
 import { errorMessages } from "@saleor/intl";
-import { ProductVariantCreateData_product } from "@saleor/products/types/ProductVariantCreateData";
 import { getVariantAttributeInputFromProduct } from "@saleor/products/utils/data";
 import { createPreorderEndDateChangeHandler } from "@saleor/products/utils/handlers";
-import { SearchPages_search_edges_node } from "@saleor/searches/types/SearchPages";
-import { SearchProducts_search_edges_node } from "@saleor/searches/types/SearchProducts";
-import { SearchWarehouses_search_edges_node } from "@saleor/searches/types/SearchWarehouses";
-import { FetchMoreProps, ReorderEvent } from "@saleor/types";
+import { FetchMoreProps, RelayToFlat, ReorderEvent } from "@saleor/types";
 import useMetadataChangeTrigger from "@saleor/utils/metadata/useMetadataChangeTrigger";
-import React from "react";
+import React, { useEffect } from "react";
 import { useIntl } from "react-intl";
 
 import { ProductStockFormsetData, ProductStockInput } from "../ProductStocks";
@@ -37,6 +45,7 @@ export interface ProductVariantCreateFormData extends MetadataFormData {
   globalThreshold: string;
   globalSoldUnits: number;
   hasPreorderEndDate: boolean;
+  quantityLimitPerCustomer: number | null;
   preorderEndDateTime?: string;
 }
 export interface ProductVariantCreateData extends ProductVariantCreateFormData {
@@ -46,9 +55,9 @@ export interface ProductVariantCreateData extends ProductVariantCreateFormData {
 }
 
 export interface UseProductVariantCreateFormOpts {
-  warehouses: SearchWarehouses_search_edges_node[];
-  referencePages: SearchPages_search_edges_node[];
-  referenceProducts: SearchProducts_search_edges_node[];
+  warehouses: RelayToFlat<SearchWarehousesQuery["search"]>;
+  referencePages: RelayToFlat<SearchPagesQuery["search"]>;
+  referenceProducts: RelayToFlat<SearchProductsQuery["search"]>;
   fetchReferencePages?: (data: string) => void;
   fetchMoreReferencePages?: FetchMoreProps;
   fetchReferenceProducts?: (data: string) => void;
@@ -71,22 +80,21 @@ export interface ProductVariantCreateHandlers
   fetchMoreReferences: FetchMoreProps;
 }
 
-export interface UseProductVariantCreateFormResult {
-  change: FormChange;
-  data: ProductVariantCreateData;
+export interface UseProductVariantCreateFormResult
+  extends CommonUseFormResultWithHandlers<
+    ProductVariantCreateData,
+    ProductVariantCreateHandlers
+  > {
   formErrors: FormErrors<ProductVariantCreateData>;
   disabled: boolean;
-  // TODO: type FormsetChange
-  handlers: ProductVariantCreateHandlers;
-  hasChanged: boolean;
-  submit: () => void;
 }
 
 export interface ProductVariantCreateFormProps
   extends UseProductVariantCreateFormOpts {
   children: (props: UseProductVariantCreateFormResult) => React.ReactNode;
-  product: ProductVariantCreateData_product;
+  product: ProductVariantCreateDataQuery["product"];
   onSubmit: (data: ProductVariantCreateData) => void;
+  disabled: boolean;
 }
 
 const initial: ProductVariantCreateFormData = {
@@ -99,32 +107,43 @@ const initial: ProductVariantCreateFormData = {
   globalThreshold: null,
   globalSoldUnits: 0,
   hasPreorderEndDate: false,
-  preorderEndDateTime: ""
+  preorderEndDateTime: "",
+  quantityLimitPerCustomer: null
 };
 
 function useProductVariantCreateForm(
-  product: ProductVariantCreateData_product,
+  product: ProductVariantCreateDataQuery["product"],
   onSubmit: (data: ProductVariantCreateData) => void,
+  disabled: boolean,
   opts: UseProductVariantCreateFormOpts
 ): UseProductVariantCreateFormResult {
   const intl = useIntl();
-  const [changed, setChanged] = React.useState(false);
-  const triggerChange = () => setChanged(true);
-
   const attributeInput = getVariantAttributeInputFromProduct(product);
 
-  const form = useForm(initial);
+  const form = useForm(initial, undefined, { confirmLeave: true });
+
+  const {
+    setChanged,
+    triggerChange,
+    handleChange,
+    hasChanged,
+    data: formData,
+    formId,
+    setIsSubmitDisabled
+  } = form;
+
   const attributes = useFormset(attributeInput);
   const attributesWithNewFileValue = useFormset<null, File>([]);
   const stocks = useFormset<ProductStockFormsetData, string>([]);
+
+  const { setExitDialogSubmitRef } = useExitFormDialog({
+    formId
+  });
+
   const {
     makeChangeHandler: makeMetadataChangeHandler
   } = useMetadataChangeTrigger();
 
-  const handleChange: FormChange = (event, cb) => {
-    form.change(event, cb);
-    triggerChange();
-  };
   const changeMetadata = makeMetadataChangeHandler(handleChange);
   const handleAttributeChange = createAttributeChangeHandler(
     attributes.change,
@@ -190,7 +209,7 @@ function useProductVariantCreateForm(
   );
 
   const data: ProductVariantCreateData = {
-    ...form.data,
+    ...formData,
     attributes: getAttributesDisplayData(
       attributes.data,
       attributesWithNewFileValue.data,
@@ -201,15 +220,28 @@ function useProductVariantCreateForm(
     stocks: stocks.data
   };
 
-  const submit = () => onSubmit(data);
+  const handleFormSubmit = useHandleFormSubmit({
+    formId,
+    onSubmit,
+    setChanged
+  });
+
+  const submit = () => handleFormSubmit(data);
+
+  useEffect(() => setExitDialogSubmitRef(submit), [submit]);
+
+  const formDisabled =
+    data.isPreorder &&
+    data.hasPreorderEndDate &&
+    !!form.errors.preorderEndDateTime;
+
+  const isSaveDisabled = disabled || formDisabled || !onSubmit;
+  setIsSubmitDisabled(isSaveDisabled);
 
   return {
     change: handleChange,
     data,
-    disabled:
-      data.isPreorder &&
-      data.hasPreorderEndDate &&
-      !!form.errors.preorderEndDateTime,
+    disabled,
     formErrors: form.errors,
     handlers: {
       addStock: handleStockAdd,
@@ -225,8 +257,9 @@ function useProductVariantCreateForm(
       selectAttributeMultiple: handleAttributeMultiChange,
       selectAttributeReference: handleAttributeReferenceChange
     },
-    hasChanged: changed,
-    submit
+    hasChanged,
+    submit,
+    isSaveDisabled
   };
 }
 
@@ -234,9 +267,10 @@ const ProductVariantCreateForm: React.FC<ProductVariantCreateFormProps> = ({
   children,
   product,
   onSubmit,
+  disabled,
   ...rest
 }) => {
-  const props = useProductVariantCreateForm(product, onSubmit, rest);
+  const props = useProductVariantCreateForm(product, onSubmit, disabled, rest);
 
   return <form onSubmit={props.submit}>{children(props)}</form>;
 };

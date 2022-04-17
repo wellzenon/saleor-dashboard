@@ -1,29 +1,26 @@
 import { MetadataFormData } from "@saleor/components/Metadata/types";
-import { MutationFunction } from "react-apollo";
+import {
+  UpdateMetadataMutationFn,
+  UpdatePrivateMetadataMutationFn
+} from "@saleor/graphql";
 
-import {
-  UpdateMetadata,
-  UpdateMetadataVariables
-} from "../metadata/types/UpdateMetadata";
-import {
-  UpdatePrivateMetadata,
-  UpdatePrivateMetadataVariables
-} from "../metadata/types/UpdatePrivateMetadata";
 import { filterMetadataArray } from "./filterMetadataArray";
 
-function createMetadataCreateHandler<T extends MetadataFormData>(
-  create: (data: T) => Promise<string>,
-  setMetadata: MutationFunction<UpdateMetadata, UpdateMetadataVariables>,
-  setPrivateMetadata: MutationFunction<
-    UpdatePrivateMetadata,
-    UpdatePrivateMetadataVariables
-  >
+export interface CreateMetadataHandlerFunctionResult<TError> {
+  id?: string;
+  errors?: TError[];
+}
+
+function createMetadataCreateHandler<T extends MetadataFormData, TError>(
+  create: (data: T) => Promise<CreateMetadataHandlerFunctionResult<TError>>,
+  setMetadata: UpdateMetadataMutationFn,
+  setPrivateMetadata: UpdatePrivateMetadataMutationFn
 ) {
   return async (data: T) => {
-    const id = await create(data);
+    const { id, errors } = await create(data);
 
-    if (id === null) {
-      return null;
+    if (id === null || !!errors?.length) {
+      return errors;
     }
 
     if (data.metadata.length > 0) {

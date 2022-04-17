@@ -1,12 +1,13 @@
-import { AccountErrorCode } from "@saleor/types/globalTypes";
+import { AccountErrorCode } from "@saleor/graphql";
 import { storiesOf } from "@storybook/react";
 import React from "react";
 
-import CustomerDetailsPage, {
+import CustomerDetailsPageComponent, {
   CustomerDetailsPageProps
 } from "../../../customers/components/CustomerDetailsPage";
 import { customer } from "../../../customers/fixtures";
 import Decorator from "../../Decorator";
+import { MockedUserProvider } from "./MockedUserProvider";
 
 const props: Omit<CustomerDetailsPageProps, "classes"> = {
   customer,
@@ -28,6 +29,12 @@ interface CustomerDetailsPageErrors {
   note: string;
 }
 
+const CustomerDetailsPage = props => (
+  <MockedUserProvider>
+    <CustomerDetailsPageComponent {...props} />
+  </MockedUserProvider>
+);
+
 storiesOf("Views / Customers / Customer details", module)
   .addDecorator(Decorator)
   .add("default", () => <CustomerDetailsPage {...props} />)
@@ -43,7 +50,8 @@ storiesOf("Views / Customers / Customer details", module)
         __typename: "AccountError",
         code: AccountErrorCode.INVALID,
         field,
-        addressType: null
+        addressType: null,
+        message: "Account invalid"
       }))}
     />
   ))

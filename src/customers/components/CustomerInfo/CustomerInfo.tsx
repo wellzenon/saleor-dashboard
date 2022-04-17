@@ -2,7 +2,7 @@ import { Card, CardContent, TextField, Typography } from "@material-ui/core";
 import CardTitle from "@saleor/components/CardTitle";
 import Grid from "@saleor/components/Grid";
 import Hr from "@saleor/components/Hr";
-import { AccountErrorFragment } from "@saleor/fragments/types/AccountErrorFragment";
+import { AccountErrorFragment } from "@saleor/graphql";
 import { commonMessages } from "@saleor/intl";
 import { makeStyles } from "@saleor/macaw-ui";
 import { getFormErrors } from "@saleor/utils/errors";
@@ -49,8 +49,8 @@ const CustomerInfo: React.FC<CustomerInfoProps> = props => {
       <CardTitle
         title={
           <FormattedMessage
-            defaultMessage="Personal Informations"
-            description="customer informations, header"
+            defaultMessage="Account Information"
+            description="account information, header"
           />
         }
       />
@@ -85,7 +85,7 @@ const CustomerInfo: React.FC<CustomerInfoProps> = props => {
         <Hr className={classes.hr} />
         <Typography className={classes.sectionHeader}>
           <FormattedMessage
-            defaultMessage="Contact Informations"
+            defaultMessage="Contact Information"
             description="customer contact section, header"
           />
         </Typography>

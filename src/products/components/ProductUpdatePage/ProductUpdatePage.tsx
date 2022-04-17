@@ -1,5 +1,9 @@
 import { OutputData } from "@editorjs/editorjs";
-import { mapToMenuItems, useExtensions } from "@saleor/apps/useExtensions";
+import {
+  extensionMountPoints,
+  mapToMenuItems,
+  useExtensions
+} from "@saleor/apps/useExtensions";
 import {
   getAttributeValuesFromReferences,
   mergeAttributeValues
@@ -10,52 +14,47 @@ import Attributes, { AttributeInput } from "@saleor/components/Attributes";
 import CardMenu from "@saleor/components/CardMenu";
 import CardSpacer from "@saleor/components/CardSpacer";
 import ChannelsAvailabilityCard from "@saleor/components/ChannelsAvailabilityCard";
-import { ConfirmButtonTransitionState } from "@saleor/components/ConfirmButton";
 import Container from "@saleor/components/Container";
 import Grid from "@saleor/components/Grid";
 import Metadata from "@saleor/components/Metadata/Metadata";
 import PageHeader from "@saleor/components/PageHeader";
 import Savebar from "@saleor/components/Savebar";
 import SeoForm from "@saleor/components/SeoForm";
-import { RefreshLimits_shop_limits } from "@saleor/components/Shop/types/RefreshLimits";
-import { ProductChannelListingErrorFragment } from "@saleor/fragments/types/ProductChannelListingErrorFragment";
-import { ProductErrorWithAttributesFragment } from "@saleor/fragments/types/ProductErrorWithAttributesFragment";
-import { TaxTypeFragment } from "@saleor/fragments/types/TaxTypeFragment";
-import { WarehouseFragment } from "@saleor/fragments/types/WarehouseFragment";
+import {
+  PermissionEnum,
+  ProductChannelListingErrorFragment,
+  ProductDetailsVariantFragment,
+  ProductErrorWithAttributesFragment,
+  ProductFragment,
+  RefreshLimitsQuery,
+  SearchAttributeValuesQuery,
+  SearchCategoriesQuery,
+  SearchCollectionsQuery,
+  SearchPagesQuery,
+  SearchProductsQuery,
+  TaxTypeFragment,
+  WarehouseFragment
+} from "@saleor/graphql";
 import { SubmitPromise } from "@saleor/hooks/useForm";
 import { FormsetData } from "@saleor/hooks/useFormset";
 import useStateFromProps from "@saleor/hooks/useStateFromProps";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
+import { Backlink, ConfirmButtonTransitionState } from "@saleor/macaw-ui";
 import { maybe } from "@saleor/misc";
 import ProductExternalMediaDialog from "@saleor/products/components/ProductExternalMediaDialog";
 import ProductVariantPrice from "@saleor/products/components/ProductVariantPrice";
 import { ChannelsWithVariantsData } from "@saleor/products/views/ProductUpdate/types";
-import { SearchAttributeValues_attribute_choices_edges_node } from "@saleor/searches/types/SearchAttributeValues";
-import { SearchCategories_search_edges_node } from "@saleor/searches/types/SearchCategories";
-import { SearchCollections_search_edges_node } from "@saleor/searches/types/SearchCollections";
-import { SearchPages_search_edges_node } from "@saleor/searches/types/SearchPages";
-import { SearchProducts_search_edges_node } from "@saleor/searches/types/SearchProducts";
 import {
   ChannelProps,
   FetchMoreProps,
   ListActions,
+  RelayToFlat,
   ReorderAction
 } from "@saleor/types";
-import {
-  AppExtensionTypeEnum,
-  AppExtensionViewEnum,
-  PermissionEnum
-} from "@saleor/types/globalTypes";
 import React from "react";
 import { useIntl } from "react-intl";
 
 import ChannelsWithVariantsAvailabilityCard from "../../../channels/ChannelsWithVariantsAvailabilityCard/ChannelsWithVariantsAvailabilityCard";
-import {
-  ProductDetails_product,
-  ProductDetails_product_media,
-  ProductDetails_product_variants
-} from "../../types/ProductDetails";
 import { getChoices, ProductUpdatePageFormData } from "../../utils/data";
 import ProductDetailsForm from "../ProductDetailsForm";
 import ProductMedia from "../ProductMedia";
@@ -80,24 +79,26 @@ export interface ProductUpdatePageProps extends ListActions, ChannelProps {
   defaultWeightUnit: string;
   errors: ProductErrorWithAttributesFragment[];
   placeholderImage: string;
-  collections: SearchCollections_search_edges_node[];
-  categories: SearchCategories_search_edges_node[];
-  attributeValues: SearchAttributeValues_attribute_choices_edges_node[];
+  collections: RelayToFlat<SearchCollectionsQuery["search"]>;
+  categories: RelayToFlat<SearchCategoriesQuery["search"]>;
+  attributeValues: RelayToFlat<
+    SearchAttributeValuesQuery["attribute"]["choices"]
+  >;
   disabled: boolean;
   fetchMoreCategories: FetchMoreProps;
   fetchMoreCollections: FetchMoreProps;
   isMediaUrlModalVisible?: boolean;
-  limits: RefreshLimits_shop_limits;
-  variants: ProductDetails_product_variants[];
-  media: ProductDetails_product_media[];
+  limits: RefreshLimitsQuery["shop"]["limits"];
+  variants: ProductDetailsVariantFragment[];
+  media: ProductFragment["media"];
   hasChannelChanged: boolean;
-  product: ProductDetails_product;
+  product: ProductFragment;
   header: string;
   saveButtonBarState: ConfirmButtonTransitionState;
   warehouses: WarehouseFragment[];
   taxTypes: TaxTypeFragment[];
-  referencePages?: SearchPages_search_edges_node[];
-  referenceProducts?: SearchProducts_search_edges_node[];
+  referencePages?: RelayToFlat<SearchPagesQuery["search"]>;
+  referenceProducts?: RelayToFlat<SearchProductsQuery["search"]>;
   assignReferencesAttributeId?: string;
   fetchMoreReferencePages?: FetchMoreProps;
   fetchMoreReferenceProducts?: FetchMoreProps;
@@ -126,7 +127,7 @@ export interface ProductUpdatePageProps extends ListActions, ChannelProps {
   onMediaUrlUpload(mediaUrl: string);
   onSeoClick?();
   onVariantAdd?();
-  onSetDefaultVariant(variant: ProductDetails_product_variants);
+  onSetDefaultVariant(variant: ProductDetailsVariantFragment);
   onWarehouseConfigure();
 }
 
@@ -251,12 +252,11 @@ export const ProductUpdatePage: React.FC<ProductUpdatePageProps> = ({
     onCloseDialog();
   };
 
-  const { moreActions } = useExtensions(
-    AppExtensionViewEnum.PRODUCT,
-    AppExtensionTypeEnum.DETAILS
+  const { PRODUCT_DETAILS_MORE_ACTIONS } = useExtensions(
+    extensionMountPoints.PRODUCT_DETAILS
   );
 
-  const extensionMenuItems = mapToMenuItems(moreActions);
+  const extensionMenuItems = mapToMenuItems(PRODUCT_DETAILS_MORE_ACTIONS);
 
   return (
     <ProductUpdateForm
@@ -284,16 +284,10 @@ export const ProductUpdatePage: React.FC<ProductUpdatePageProps> = ({
       fetchReferenceProducts={fetchReferenceProducts}
       fetchMoreReferenceProducts={fetchMoreReferenceProducts}
       assignReferencesAttributeId={assignReferencesAttributeId}
+      disabled={disabled}
+      hasChannelChanged={hasChannelChanged}
     >
-      {({
-        change,
-        data,
-        formErrors,
-        disabled: formDisabled,
-        handlers,
-        hasChanged,
-        submit
-      }) => (
+      {({ change, data, formErrors, handlers, submit, isSaveDisabled }) => (
         <>
           <Container>
             <Backlink onClick={onBack}>
@@ -301,7 +295,7 @@ export const ProductUpdatePage: React.FC<ProductUpdatePageProps> = ({
             </Backlink>
             <PageHeader title={header}>
               {extensionMenuItems.length > 0 && (
-                <CardMenu menuItems={extensionMenuItems} data-test="menu" />
+                <CardMenu menuItems={extensionMenuItems} data-test-id="menu" />
               )}
             </PageHeader>
             <Grid>
@@ -508,9 +502,7 @@ export const ProductUpdatePage: React.FC<ProductUpdatePageProps> = ({
               onDelete={onDelete}
               onSubmit={submit}
               state={saveButtonBarState}
-              disabled={
-                disabled || formDisabled || (!hasChanged && !hasChannelChanged)
-              }
+              disabled={isSaveDisabled}
             />
             {canOpenAssignReferencesAttributeDialog && (
               <AssignAttributeValueDialog

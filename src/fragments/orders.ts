@@ -1,11 +1,7 @@
-import gql from "graphql-tag";
-
-import { fragmentAddress } from "./address";
-import { metadataFragment } from "./metadata";
-import { fragmentMoney } from "./products";
+import { gql } from "@apollo/client";
 
 export const fragmentOrderEvent = gql`
-  fragment OrderEventFragment on OrderEvent {
+  fragment OrderEvent on OrderEvent {
     id
     amount
     shippingCostsIncluded
@@ -75,7 +71,7 @@ export const fragmentOrderEvent = gql`
 `;
 
 export const fragmentOrderLine = gql`
-  fragment OrderLineFragment on OrderLine {
+  fragment OrderLine on OrderLine {
     id
     isShippingRequired
     variant {
@@ -125,7 +121,7 @@ export const fragmentOrderLine = gql`
 `;
 
 export const fragmentRefundOrderLine = gql`
-  fragment RefundOrderLineFragment on OrderLine {
+  fragment RefundOrderLine on OrderLine {
     id
     productName
     quantity
@@ -141,14 +137,13 @@ export const fragmentRefundOrderLine = gql`
 `;
 
 export const fulfillmentFragment = gql`
-  ${fragmentOrderLine}
-  fragment FulfillmentFragment on Fulfillment {
+  fragment Fulfillment on Fulfillment {
     id
     lines {
       id
       quantity
       orderLine {
-        ...OrderLineFragment
+        ...OrderLine
       }
     }
     fulfillmentOrder
@@ -162,7 +157,7 @@ export const fulfillmentFragment = gql`
 `;
 
 export const invoiceFragment = gql`
-  fragment InvoiceFragment on Invoice {
+  fragment Invoice on Invoice {
     id
     number
     createdAt
@@ -172,19 +167,12 @@ export const invoiceFragment = gql`
 `;
 
 export const fragmentOrderDetails = gql`
-  ${fragmentAddress}
-  ${fragmentOrderEvent}
-  ${fragmentOrderLine}
-  ${fulfillmentFragment}
-  ${invoiceFragment}
-  ${metadataFragment}
-  ${fragmentMoney}
-  fragment OrderDetailsFragment on Order {
+  fragment OrderDetails on Order {
     id
     token
-    ...MetadataFragment
+    ...Metadata
     billingAddress {
-      ...AddressFragment
+      ...Address
     }
     giftCards {
       events {
@@ -222,19 +210,19 @@ export const fragmentOrderDetails = gql`
       }
     }
     events {
-      ...OrderEventFragment
+      ...OrderEvent
     }
     fulfillments {
-      ...FulfillmentFragment
+      ...Fulfillment
     }
     lines {
-      ...OrderLineFragment
+      ...OrderLine
     }
     number
     isPaid
     paymentStatus
     shippingAddress {
-      ...AddressFragment
+      ...Address
     }
     deliveryMethod {
       __typename
@@ -297,15 +285,17 @@ export const fragmentOrderDetails = gql`
       email
     }
     userEmail
-    availableShippingMethods {
+    shippingMethods {
       id
       name
       price {
         ...Money
       }
+      active
+      message
     }
     invoices {
-      ...InvoiceFragment
+      ...Invoice
     }
     channel {
       isActive
@@ -313,20 +303,23 @@ export const fragmentOrderDetails = gql`
       name
       currencyCode
       slug
+      defaultCountry {
+        code
+      }
     }
     isPaid
   }
 `;
 
 export const fragmentOrderSettings = gql`
-  fragment OrderSettingsFragment on OrderSettings {
+  fragment OrderSettings on OrderSettings {
     automaticallyConfirmAllNewOrders
     automaticallyFulfillNonShippableGiftCard
   }
 `;
 
 export const fragmentShopOrderSettings = gql`
-  fragment ShopOrderSettingsFragment on Shop {
+  fragment ShopOrderSettings on Shop {
     fulfillmentAutoApprove
     fulfillmentAllowUnpaid
   }

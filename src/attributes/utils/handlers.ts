@@ -1,32 +1,28 @@
+import { FetchResult } from "@apollo/client";
 import {
   AttributeInput,
   AttributeInputData
 } from "@saleor/components/Attributes";
 import {
-  FileUpload,
-  FileUploadVariables
-} from "@saleor/files/types/FileUpload";
+  AttributeEntityTypeEnum,
+  AttributeInputTypeEnum,
+  AttributeValueDeleteMutation,
+  AttributeValueDeleteMutationVariables,
+  AttributeValueInput,
+  FileUploadMutation,
+  FileUploadMutationVariables,
+  PageSelectedAttributeFragment,
+  ProductFragment,
+  ProductVariantDetailsQuery
+} from "@saleor/graphql";
 import {
   FormsetAtomicData,
   FormsetChange,
   FormsetData
 } from "@saleor/hooks/useFormset";
-import { PageDetails_page_attributes } from "@saleor/pages/types/PageDetails";
-import { ProductDetails_product_attributes } from "@saleor/products/types/ProductDetails";
-import { ProductVariantDetails_productVariant_nonSelectionAttributes } from "@saleor/products/types/ProductVariantDetails";
 import { FetchMoreProps, ReorderEvent } from "@saleor/types";
-import {
-  AttributeEntityTypeEnum,
-  AttributeInputTypeEnum,
-  AttributeValueInput
-} from "@saleor/types/globalTypes";
 import { move, toggle } from "@saleor/utils/lists";
-import { MutationFetchResult } from "react-apollo";
 
-import {
-  AttributeValueDelete,
-  AttributeValueDeleteVariables
-} from "../types/AttributeValueDelete";
 import { getFileValuesToUploadFromAttributes, isFileValueUnused } from "./data";
 
 export function createAttributeChangeHandler(
@@ -199,20 +195,6 @@ function getFileInput(
   };
 }
 
-function getReferenceInput(attribute: AttributeInput) {
-  return {
-    id: attribute.id,
-    references: attribute.value
-  };
-}
-
-function getRichTextInput(attribute: AttributeInput) {
-  return {
-    id: attribute.id,
-    richText: attribute.value[0]
-  };
-}
-
 function getBooleanInput(attribute: AttributeInput) {
   return {
     id: attribute.id,
@@ -220,63 +202,72 @@ function getBooleanInput(attribute: AttributeInput) {
   };
 }
 
-function getDateInput(attribute: AttributeInput) {
-  return {
-    id: attribute.id,
-    date: attribute.value[0]
-  };
-}
-
-function getDateTimeInput(attribute: AttributeInput) {
-  return {
-    id: attribute.id,
-    dateTime: attribute.value[0]
-  };
-}
-
-function getDefaultInput(attribute: AttributeInput) {
-  return {
-    id: attribute.id,
-    values: ["", undefined, null].includes(attribute.value[0])
-      ? []
-      : attribute.value
-  };
-}
-
 export const prepareAttributesInput = ({
   attributes,
   updatedFileAttributes
 }: AttributesArgs): AttributeValueInput[] =>
-  attributes.map(attribute => {
-    switch (attribute.data.inputType) {
-      case AttributeInputTypeEnum.FILE:
-        return getFileInput(attribute, updatedFileAttributes);
-
-      case AttributeInputTypeEnum.REFERENCE:
-        return getReferenceInput(attribute);
-
-      case AttributeInputTypeEnum.RICH_TEXT:
-        return getRichTextInput(attribute);
-
-      case AttributeInputTypeEnum.BOOLEAN:
-        return getBooleanInput(attribute);
-
-      case AttributeInputTypeEnum.DATE:
-        return getDateInput(attribute);
-
-      case AttributeInputTypeEnum.DATE_TIME:
-        return getDateTimeInput(attribute);
-
-      default:
-        return getDefaultInput(attribute);
+  attributes.reduce((attrInput, attr) => {
+    const inputType = attr.data.inputType;
+    if (inputType === AttributeInputTypeEnum.FILE) {
+      const fileInput = getFileInput(attr, updatedFileAttributes);
+      if (fileInput.file) {
+        attrInput.push(fileInput);
+      }
+      return attrInput;
     }
-  });
+    if (inputType === AttributeInputTypeEnum.BOOLEAN) {
+      const booleanInput = getBooleanInput(attr);
+      attrInput.push(booleanInput);
+      return attrInput;
+    }
+    if (inputType === AttributeInputTypeEnum.RICH_TEXT) {
+      attrInput.push({
+        id: attr.id,
+        richText: attr.value[0]
+      });
+      return attrInput;
+    }
+
+    // for cases other than rich text, boolean and file
+    // we can skip attribute
+    if (!attr.value[0]) {
+      return attrInput;
+    }
+    if (inputType === AttributeInputTypeEnum.REFERENCE) {
+      attrInput.push({
+        id: attr.id,
+        references: attr.value
+      });
+      return attrInput;
+    }
+    if (inputType === AttributeInputTypeEnum.DATE) {
+      attrInput.push({
+        id: attr.id,
+        date: attr.value[0]
+      });
+      return attrInput;
+    }
+    if (inputType === AttributeInputTypeEnum.DATE_TIME) {
+      attrInput.push({
+        id: attr.id,
+        dateTime: attr.value[0]
+      });
+      return attrInput;
+    }
+
+    attrInput.push({
+      id: attr.id,
+      values: attr.value
+    });
+
+    return attrInput;
+  }, []);
 
 export const handleUploadMultipleFiles = async (
   attributesWithNewFileValue: FormsetData<null, File>,
   uploadFile: (
-    variables: FileUploadVariables
-  ) => Promise<MutationFetchResult<FileUpload>>
+    variables: FileUploadMutationVariables
+  ) => Promise<FetchResult<FileUploadMutation>>
 ) =>
   Promise.all(
     getFileValuesToUploadFromAttributes(attributesWithNewFileValue).map(
@@ -290,13 +281,13 @@ export const handleUploadMultipleFiles = async (
 export const handleDeleteMultipleAttributeValues = async (
   attributesWithNewFileValue: FormsetData<null, File>,
   attributes: Array<
-    | PageDetails_page_attributes
-    | ProductDetails_product_attributes
-    | ProductVariantDetails_productVariant_nonSelectionAttributes
+    | PageSelectedAttributeFragment
+    | ProductFragment["attributes"][0]
+    | ProductVariantDetailsQuery["productVariant"]["nonSelectionAttributes"][0]
   >,
   deleteAttributeValue: (
-    variables: AttributeValueDeleteVariables
-  ) => Promise<MutationFetchResult<AttributeValueDelete>>
+    variables: AttributeValueDeleteMutationVariables
+  ) => Promise<FetchResult<AttributeValueDeleteMutation>>
 ) =>
   Promise.all(
     attributes.map(existingAttribute => {
@@ -307,7 +298,8 @@ export const handleDeleteMultipleAttributeValues = async (
 
       if (fileValueUnused) {
         return deleteAttributeValue({
-          id: existingAttribute.values[0].id
+          id: existingAttribute.values[0].id,
+          firstValues: 20
         });
       }
     })

@@ -1,12 +1,17 @@
 import { WindowTitle } from "@saleor/components/WindowTitle";
+import { CountryCode, useWarehouseCreateMutation } from "@saleor/graphql";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
 import useShop from "@saleor/hooks/useShop";
 import { commonMessages } from "@saleor/intl";
-import { findValueInEnum, getMutationStatus } from "@saleor/misc";
-import { CountryCode } from "@saleor/types/globalTypes";
-import WarehouseCreatePage from "@saleor/warehouses/components/WarehouseCreatePage";
-import { useWarehouseCreate } from "@saleor/warehouses/mutations";
+import {
+  extractMutationErrors,
+  findValueInEnum,
+  getMutationStatus
+} from "@saleor/misc";
+import WarehouseCreatePage, {
+  WarehouseCreatePageFormData
+} from "@saleor/warehouses/components/WarehouseCreatePage";
 import { warehouseListUrl, warehouseUrl } from "@saleor/warehouses/urls";
 import React from "react";
 import { useIntl } from "react-intl";
@@ -16,7 +21,7 @@ const WarehouseCreate: React.FC = () => {
   const navigate = useNavigator();
   const notify = useNotifier();
   const shop = useShop();
-  const [createWarehouse, createWarehouseOpts] = useWarehouseCreate({
+  const [createWarehouse, createWarehouseOpts] = useWarehouseCreateMutation({
     onCompleted: data => {
       if (data.createWarehouse.errors.length === 0) {
         navigate(warehouseUrl(data.createWarehouse.warehouse.id));
@@ -28,6 +33,28 @@ const WarehouseCreate: React.FC = () => {
     }
   });
   const createWarehouseTransitionState = getMutationStatus(createWarehouseOpts);
+
+  const handleSubmit = (data: WarehouseCreatePageFormData) =>
+    extractMutationErrors(
+      createWarehouse({
+        variables: {
+          input: {
+            address: {
+              companyName: data.companyName,
+              city: data.city,
+              cityArea: data.cityArea,
+              country: findValueInEnum(data.country, CountryCode),
+              countryArea: data.countryArea,
+              phone: data.phone,
+              postalCode: data.postalCode,
+              streetAddress1: data.streetAddress1,
+              streetAddress2: data.streetAddress2
+            },
+            name: data.name
+          }
+        }
+      })
+    );
 
   return (
     <>
@@ -43,26 +70,7 @@ const WarehouseCreate: React.FC = () => {
         errors={createWarehouseOpts.data?.createWarehouse.errors || []}
         saveButtonBarState={createWarehouseTransitionState}
         onBack={() => navigate(warehouseListUrl())}
-        onSubmit={data =>
-          createWarehouse({
-            variables: {
-              input: {
-                address: {
-                  companyName: data.companyName,
-                  city: data.city,
-                  cityArea: data.cityArea,
-                  country: findValueInEnum(data.country, CountryCode),
-                  countryArea: data.countryArea,
-                  phone: data.phone,
-                  postalCode: data.postalCode,
-                  streetAddress1: data.streetAddress1,
-                  streetAddress2: data.streetAddress2
-                },
-                name: data.name
-              }
-            }
-          })
-        }
+        onSubmit={handleSubmit}
       />
     </>
   );

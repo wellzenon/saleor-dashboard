@@ -1,23 +1,25 @@
 import { Typography } from "@material-ui/core";
 import CardMenu from "@saleor/components/CardMenu";
 import CardSpacer from "@saleor/components/CardSpacer";
-import { ConfirmButtonTransitionState } from "@saleor/components/ConfirmButton";
 import { Container } from "@saleor/components/Container";
 import { DateTime } from "@saleor/components/Date";
 import Grid from "@saleor/components/Grid";
 import PageHeader from "@saleor/components/PageHeader";
 import Savebar from "@saleor/components/Savebar";
 import Skeleton from "@saleor/components/Skeleton";
+import { OrderDetailsFragment, SearchCustomersQuery } from "@saleor/graphql";
+import { SubmitPromise } from "@saleor/hooks/useForm";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
-import { makeStyles } from "@saleor/macaw-ui";
+import {
+  Backlink,
+  ConfirmButtonTransitionState,
+  makeStyles
+} from "@saleor/macaw-ui";
 import DraftOrderChannelSectionCard from "@saleor/orders/components/DraftOrderChannelSectionCard";
-import { SearchCustomers_search_edges_node } from "@saleor/searches/types/SearchCustomers";
-import { FetchMoreProps, UserPermissionProps } from "@saleor/types";
+import { FetchMoreProps, RelayToFlat } from "@saleor/types";
 import React from "react";
 import { useIntl } from "react-intl";
 
-import { OrderDetails_order } from "../../types/OrderDetails";
 import OrderCustomer, { CustomerEditData } from "../OrderCustomer";
 import OrderDraftDetails from "../OrderDraftDetails/OrderDraftDetails";
 import { FormData as OrderDraftDetailsProductsFormData } from "../OrderDraftDetailsProducts";
@@ -36,12 +38,10 @@ const useStyles = makeStyles(
   { name: "OrderDraftPage" }
 );
 
-export interface OrderDraftPageProps
-  extends FetchMoreProps,
-    UserPermissionProps {
+export interface OrderDraftPageProps extends FetchMoreProps {
   disabled: boolean;
-  order: OrderDetails_order;
-  users: SearchCustomers_search_edges_node[];
+  order: OrderDetailsFragment;
+  users: RelayToFlat<SearchCustomersQuery["search"]>;
   usersLoading: boolean;
   saveButtonBarState: ConfirmButtonTransitionState;
   fetchUsers: (query: string) => void;
@@ -50,7 +50,7 @@ export interface OrderDraftPageProps
   onCustomerEdit: (data: CustomerEditData) => void;
   onDraftFinalize: () => void;
   onDraftRemove: () => void;
-  onNoteAdd: (data: HistoryFormData) => void;
+  onNoteAdd: (data: HistoryFormData) => SubmitPromise<any[]>;
   onOrderLineAdd: () => void;
   onOrderLineChange: (
     id: string,
@@ -84,8 +84,7 @@ const OrderDraftPage: React.FC<OrderDraftPageProps> = props => {
     onProfileView,
     order,
     users,
-    usersLoading,
-    userPermissions
+    usersLoading
   } = props;
   const classes = useStyles(props);
 
@@ -139,14 +138,13 @@ const OrderDraftPage: React.FC<OrderDraftPageProps> = props => {
         </div>
         <div>
           <OrderCustomer
-            canEditAddresses={true}
+            canEditAddresses={!!order?.user}
             canEditCustomer={true}
             fetchUsers={fetchUsers}
             hasMore={hasMore}
             loading={usersLoading}
             order={order}
             users={users}
-            userPermissions={userPermissions}
             onBillingAddressEdit={onBillingAddressEdit}
             onCustomerEdit={onCustomerEdit}
             onFetchMore={onFetchMore}

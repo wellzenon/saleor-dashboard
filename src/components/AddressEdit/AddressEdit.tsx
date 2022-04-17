@@ -1,7 +1,6 @@
 import { TextField } from "@material-ui/core";
 import { AddressTypeInput } from "@saleor/customers/types";
-import { AccountErrorFragment } from "@saleor/fragments/types/AccountErrorFragment";
-import { OrderErrorFragment } from "@saleor/fragments/types/OrderErrorFragment";
+import { AccountErrorFragment, OrderErrorFragment } from "@saleor/graphql";
 import { commonMessages } from "@saleor/intl";
 import { makeStyles } from "@saleor/macaw-ui";
 import { getFormErrors } from "@saleor/utils/errors";
@@ -94,7 +93,9 @@ const AddressEdit: React.FC<AddressEditProps> = props => {
             value={data.firstName}
             fullWidth
             InputProps={{
-              autoComplete: "given-name"
+              // Setting 'autoComplete: "new-password"' is the only way to
+              // disable Chrome's autofill on forms as of early 2022
+              autoComplete: "new-password"
             }}
           />
         </div>
@@ -109,7 +110,7 @@ const AddressEdit: React.FC<AddressEditProps> = props => {
             value={data.lastName}
             fullWidth
             InputProps={{
-              autoComplete: "family-name"
+              autoComplete: "new-password"
             }}
           />
         </div>
@@ -129,7 +130,7 @@ const AddressEdit: React.FC<AddressEditProps> = props => {
             value={data.companyName}
             fullWidth
             InputProps={{
-              autoComplete: "organization"
+              autoComplete: "new-password"
             }}
           />
         </div>
@@ -146,7 +147,7 @@ const AddressEdit: React.FC<AddressEditProps> = props => {
             value={data.phone}
             onChange={onChange}
             InputProps={{
-              autoComplete: "tel"
+              autoComplete: "new-password"
             }}
           />
         </div>
@@ -164,7 +165,7 @@ const AddressEdit: React.FC<AddressEditProps> = props => {
         value={data.streetAddress1}
         fullWidth
         InputProps={{
-          autoComplete: "address-line1"
+          autoComplete: "new-password"
         }}
       />
       <FormSpacer />
@@ -180,7 +181,7 @@ const AddressEdit: React.FC<AddressEditProps> = props => {
         value={data.streetAddress2}
         fullWidth
         InputProps={{
-          autoComplete: "address-line2"
+          autoComplete: "new-password"
         }}
       />
       <FormSpacer />
@@ -198,7 +199,7 @@ const AddressEdit: React.FC<AddressEditProps> = props => {
             value={data.city}
             fullWidth
             InputProps={{
-              autoComplete: "address-level2"
+              autoComplete: "new-password"
             }}
           />
         </div>
@@ -215,7 +216,7 @@ const AddressEdit: React.FC<AddressEditProps> = props => {
             value={data.postalCode}
             fullWidth
             InputProps={{
-              autoComplete: "postal-code"
+              autoComplete: "new-password"
             }}
           />
         </div>
@@ -237,11 +238,6 @@ const AddressEdit: React.FC<AddressEditProps> = props => {
             onChange={onCountryChange}
             value={data.country}
             choices={countries}
-            InputProps={{
-              inputProps: {
-                autoComplete: "none"
-              }
-            }}
           />
         </div>
         <div>
@@ -257,7 +253,7 @@ const AddressEdit: React.FC<AddressEditProps> = props => {
             value={data.countryArea}
             fullWidth
             InputProps={{
-              autoComplete: "address-level1"
+              autoComplete: "new-password"
             }}
           />
         </div>

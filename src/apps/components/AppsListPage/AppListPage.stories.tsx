@@ -18,7 +18,10 @@ const props: AppsListPageProps = {
   ...searchPageProps,
   ...sortPageProps,
   ...tabPageProps,
-  appsInProgressList: { appsInstallations: appsInProgress },
+  appsInProgressList: {
+    __typename: "Query",
+    appsInstallations: appsInProgress
+  },
   customAppsList,
   disabled: false,
   installedAppsList: appsList,
@@ -32,7 +35,7 @@ const props: AppsListPageProps = {
   onNextPage: () => undefined,
   onPreviousPage: () => undefined,
   onRowClick: () => undefined,
-  onSettingsRowClick: () => undefined
+  onRowAboutClick: () => undefined
 };
 
 storiesOf("Views / Apps / Apps list", module)

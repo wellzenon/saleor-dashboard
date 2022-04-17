@@ -1,4 +1,4 @@
-import gql from "graphql-tag";
+import { gql } from "@apollo/client";
 
 export const availableExternalAuthentications = gql`
   query AvailableExternalAuthentications {
@@ -7,6 +7,14 @@ export const availableExternalAuthentications = gql`
         id
         name
       }
+    }
+  }
+`;
+
+export const userDetailsQuery = gql`
+  query UserDetails {
+    me {
+      ...User
     }
   }
 `;

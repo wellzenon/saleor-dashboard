@@ -10,7 +10,7 @@ export function createWaitingForCaptureOrder({
   channelSlug,
   email,
   variantsList,
-  shippingMethodId,
+  shippingMethodName,
   address
 }) {
   let checkout;
@@ -27,6 +27,10 @@ export function createWaitingForCaptureOrder({
     })
     .then(({ checkout: checkoutResp }) => {
       checkout = checkoutResp;
+      const shippingMethodId = getShippingMethodIdFromCheckout(
+        checkout,
+        shippingMethodName
+      );
       checkoutRequest.addShippingMethod(checkout.id, shippingMethodId);
     })
     .then(() => addPayment(checkout.id))
@@ -34,12 +38,37 @@ export function createWaitingForCaptureOrder({
     .then(({ order }) => ({ checkout, order }));
 }
 
+export function getShippingMethodIdFromCheckout(checkout, shippingMethodName) {
+  const availableShippingMethodsLength = checkout.shippingMethods.length;
+  if (availableShippingMethodsLength === 0) {
+    return null;
+  } else {
+    return checkout.shippingMethods.find(
+      element => element.name === shippingMethodName
+    ).id;
+  }
+}
+
+export function updateShippingInCheckout(checkoutToken, shippingMethodName) {
+  return checkoutRequest.getCheckout(checkoutToken).then(checkout => {
+    const shippingMethodId = getShippingMethodIdFromCheckout(
+      checkout,
+      shippingMethodName
+    );
+    return checkoutRequest.checkoutShippingMethodUpdate(
+      checkout.id,
+      shippingMethodId
+    );
+  });
+}
+
 export function createCheckoutWithVoucher({
   channelSlug,
   email = "email@example.com",
   variantsList,
+  productQuantity = 1,
   address,
-  shippingMethodId,
+  shippingMethodName,
   voucherCode,
   auth
 }) {
@@ -47,6 +76,7 @@ export function createCheckoutWithVoucher({
   return checkoutRequest
     .createCheckout({
       channelSlug,
+      productQuantity,
       email,
       variantsList,
       address,
@@ -55,6 +85,10 @@ export function createCheckoutWithVoucher({
     })
     .then(({ checkout: checkoutResp }) => {
       checkout = checkoutResp;
+      const shippingMethodId = getShippingMethodIdFromCheckout(
+        checkout,
+        shippingMethodName
+      );
       checkoutRequest.addShippingMethod(checkout.id, shippingMethodId);
     })
     .then(() => {
@@ -71,7 +105,7 @@ export function purchaseProductWithPromoCode({
   email = "email@example.com",
   variantsList,
   address,
-  shippingMethodId,
+  shippingMethodName,
   voucherCode,
   auth
 }) {
@@ -82,7 +116,7 @@ export function purchaseProductWithPromoCode({
     email,
     variantsList,
     address,
-    shippingMethodId,
+    shippingMethodName,
     voucherCode,
     auth
   })
@@ -212,7 +246,7 @@ export function createOrderWithNewProduct({
   warehouseId,
   quantityInWarehouse = 1,
   trackInventory = true,
-  shippingMethodId,
+  shippingMethod,
   address
 }) {
   let variantsList;
@@ -232,7 +266,7 @@ export function createOrderWithNewProduct({
         channelSlug: channel.slug,
         email: "email@example.com",
         variantsList,
-        shippingMethodId,
+        shippingMethodName: shippingMethod.name,
         address
       });
     })

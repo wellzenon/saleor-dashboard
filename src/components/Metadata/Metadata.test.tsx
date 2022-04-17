@@ -1,7 +1,6 @@
 import useForm from "@saleor/hooks/useForm";
 import Wrapper from "@test/wrapper";
-import { configure } from "enzyme";
-import { mount } from "enzyme";
+import { configure, mount } from "enzyme";
 import Adapter from "enzyme-adapter-react-16";
 import React from "react";
 
@@ -10,7 +9,7 @@ import Metadata from "./Metadata";
 
 configure({ adapter: new Adapter() });
 
-const expandButton = 'data-test="expand"';
+const expandButton = 'data-test-id="expand"';
 
 const Component: React.FC = () => {
   const { change, data } = useForm(props.data, jest.fn());
@@ -111,8 +110,8 @@ describe("Metadata editor", () => {
   it("can delete field", () => {
     const wrapper = mount(<Component />);
 
-    const fieldSelector = 'tr[data-test="field"]';
-    const deleteButtonSelector = '[data-test="deleteField"]';
+    const fieldSelector = 'tr[data-test-id="field"]';
+    const deleteButtonSelector = '[data-test-id*="delete-field"]';
 
     // Expand to reveal fields
     wrapper
@@ -137,8 +136,8 @@ describe("Metadata editor", () => {
   it("can add field", () => {
     const wrapper = mount(<Component />);
 
-    const fieldSelector = 'tr[data-test="field"]';
-    const addButtonSelector = '[data-test="addField"]';
+    const fieldSelector = 'tr[data-test-id="field"]';
+    const addButtonSelector = '[data-test-id="add-field"]';
 
     // Expand to reveal fields
     wrapper

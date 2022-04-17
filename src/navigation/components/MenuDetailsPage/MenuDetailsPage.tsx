@@ -1,23 +1,20 @@
 import { Typography } from "@material-ui/core";
 import CardSpacer from "@saleor/components/CardSpacer";
-import { ConfirmButtonTransitionState } from "@saleor/components/ConfirmButton";
 import Container from "@saleor/components/Container";
 import Form from "@saleor/components/Form";
 import Grid from "@saleor/components/Grid";
 import Savebar from "@saleor/components/Savebar";
-import { MenuErrorFragment } from "@saleor/fragments/types/MenuErrorFragment";
+import { MenuDetailsFragment, MenuErrorFragment } from "@saleor/graphql";
 import { SubmitPromise } from "@saleor/hooks/useForm";
 import { sectionNames } from "@saleor/intl";
-import { Backlink } from "@saleor/macaw-ui";
+import { Backlink, ConfirmButtonTransitionState } from "@saleor/macaw-ui";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { maybe } from "../../../misc";
-import { MenuDetails_menu } from "../../types/MenuDetails";
 import { MenuItemType } from "../MenuItemDialog";
 import MenuItems, { TreeOperation } from "../MenuItems";
 import MenuProperties from "../MenuProperties";
-import { computeTree } from "./tree";
+import { computeRelativeTree } from "./tree";
 
 export interface MenuDetailsFormData {
   name: string;
@@ -31,7 +28,7 @@ export interface MenuDetailsPageProps {
   saveButtonState: ConfirmButtonTransitionState;
   disabled: boolean;
   errors: MenuErrorFragment[];
-  menu: MenuDetails_menu;
+  menu: MenuDetailsFragment;
   onBack: () => void;
   onDelete: () => void;
   onItemAdd: () => void;
@@ -55,17 +52,20 @@ const MenuDetailsPage: React.FC<MenuDetailsPageProps> = ({
   const intl = useIntl();
 
   const initialForm: MenuDetailsFormData = {
-    name: maybe(() => menu.name, "")
+    name: menu?.name ?? ""
   };
 
   const [treeOperations, setTreeOperations] = React.useState<TreeOperation[]>(
     []
   );
 
+  const removeSimulatedMoves = (operations: TreeOperation[]) =>
+    operations.filter(operation => !operation.simulatedMove);
+
   const handleSubmit = async (data: MenuDetailsFormData) => {
     const result = await onSubmit({
       name: data.name,
-      operations: treeOperations
+      operations: removeSimulatedMoves(treeOperations)
     });
 
     if (result) {
@@ -75,14 +75,12 @@ const MenuDetailsPage: React.FC<MenuDetailsPageProps> = ({
     return result;
   };
 
-  const handleChange = (operation: TreeOperation) => {
-    if (!!operation) {
-      setTreeOperations([...treeOperations, operation]);
-    }
+  const handleChange = (operations: TreeOperation[]) => {
+    setTreeOperations([...treeOperations, ...operations]);
   };
 
   return (
-    <Form initial={initialForm} onSubmit={handleSubmit}>
+    <Form confirmLeave initial={initialForm} onSubmit={handleSubmit}>
       {({ change, data, hasChanged, submit }) => (
         <Container>
           <Backlink onClick={onBack}>
@@ -110,17 +108,25 @@ const MenuDetailsPage: React.FC<MenuDetailsPageProps> = ({
               <CardSpacer />
               <MenuItems
                 canUndo={treeOperations.length > 0}
-                items={maybe(() =>
-                  computeTree(menu.items, [...treeOperations])
-                )}
+                items={
+                  menu?.items
+                    ? computeRelativeTree(menu.items, treeOperations)
+                    : []
+                }
                 onChange={handleChange}
                 onItemAdd={onItemAdd}
                 onItemClick={onItemClick}
                 onItemEdit={onItemEdit}
                 onUndo={() =>
-                  setTreeOperations(
-                    treeOperations.slice(0, treeOperations.length - 1)
-                  )
+                  setTreeOperations(operations => {
+                    if (operations.length > 1) {
+                      // Undo of a simulated move needs removal of 2 moves instead of one
+                      if (operations[operations.length - 2].simulatedMove) {
+                        return operations.slice(0, operations.length - 2);
+                      }
+                    }
+                    return operations.slice(0, operations.length - 1);
+                  })
                 }
               />
             </div>

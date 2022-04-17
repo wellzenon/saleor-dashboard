@@ -10,7 +10,10 @@ import {
 } from "../../../support/api/requests/Checkout";
 import { getOrder } from "../../../support/api/requests/Order";
 import { getDefaultChannel } from "../../../support/api/utils/channelsUtils";
-import { addAdyenPayment } from "../../../support/api/utils/ordersUtils";
+import {
+  addAdyenPayment,
+  getShippingMethodIdFromCheckout
+} from "../../../support/api/utils/ordersUtils";
 import {
   createProductInChannel,
   createTypeAttributeAndCategoryForProduct,
@@ -99,8 +102,12 @@ filterTests({ definedTags: ["stagedOnly"] }, () => {
         auth: "token"
       })
         .then(({ checkout: checkoutResp }) => {
+          const shippingMethodId = getShippingMethodIdFromCheckout(
+            checkoutResp,
+            shippingMethod.name
+          );
           checkout = checkoutResp;
-          addShippingMethod(checkout.id, shippingMethod.id);
+          addShippingMethod(checkout.id, shippingMethodId);
         })
         .then(({ checkout: checkoutResp }) => {
           addAdyenPayment(checkout.id, checkoutResp.totalPrice.gross.amount);
@@ -157,8 +164,8 @@ filterTests({ definedTags: ["stagedOnly"] }, () => {
       simpleCard.brand = paymentCards.cards.simpleCard.brand;
       simpleCard.encryptedSecurityCode =
         paymentCards.encryptedSecurityCodes.unknown;
-      completeCheckout(checkout.id, simpleCard).then(({ checkoutErrors }) => {
-        expect(checkoutErrors).to.have.length(1);
+      completeCheckout(checkout.id, simpleCard).then(({ errors }) => {
+        expect(errors).to.have.length(1);
       });
     });
 
@@ -167,8 +174,8 @@ filterTests({ definedTags: ["stagedOnly"] }, () => {
       errorCard.encryptedCardNumber =
         paymentCards.cards.errorCard.encryptedCardNumber;
       errorCard.brand = paymentCards.cards.errorCard.brand;
-      completeCheckout(checkout.id, errorCard).then(({ checkoutErrors }) => {
-        expect(checkoutErrors).to.have.length(1);
+      completeCheckout(checkout.id, errorCard).then(({ errors }) => {
+        expect(errors).to.have.length(1);
       });
     });
 
@@ -177,8 +184,8 @@ filterTests({ definedTags: ["stagedOnly"] }, () => {
       closeAccount.encryptedCardNumber =
         paymentCards.cards.closeAccount.encryptedCardNumber;
       closeAccount.brand = paymentCards.cards.closeAccount.brand;
-      completeCheckout(checkout.id, closeAccount).then(({ checkoutErrors }) => {
-        expect(checkoutErrors).to.have.length(1);
+      completeCheckout(checkout.id, closeAccount).then(({ errors }) => {
+        expect(errors).to.have.length(1);
       });
     });
   });

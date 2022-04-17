@@ -2,11 +2,15 @@ import Container from "@saleor/components/Container";
 import Grid from "@saleor/components/Grid";
 import PageHeader from "@saleor/components/PageHeader";
 import RequirePermissions from "@saleor/components/RequirePermissions";
-import { ShippingZoneFragment } from "@saleor/fragments/types/ShippingZoneFragment";
+import {
+  PermissionEnum,
+  ShippingZoneFragment,
+  WeightUnitsEnum
+} from "@saleor/graphql";
+import { SubmitPromise } from "@saleor/hooks/useForm";
 import { sectionNames } from "@saleor/intl";
 import { Backlink } from "@saleor/macaw-ui";
 import { ListActions, PageListProps, UserPermissionProps } from "@saleor/types";
-import { PermissionEnum, WeightUnitsEnum } from "@saleor/types/globalTypes";
 import React from "react";
 import { useIntl } from "react-intl";
 
@@ -21,13 +25,12 @@ export interface ShippingZonesListPageProps
   shippingZones: ShippingZoneFragment[];
   onBack: () => void;
   onRemove: (id: string) => void;
-  onSubmit: (unit: WeightUnitsEnum) => void;
+  onSubmit: (unit: WeightUnitsEnum) => SubmitPromise;
 }
 
 const ShippingZonesListPage: React.FC<ShippingZonesListPageProps> = ({
   defaultWeightUnit,
   disabled,
-  userPermissions,
   onBack,
   onSubmit,
   ...listProps
@@ -51,7 +54,6 @@ const ShippingZonesListPage: React.FC<ShippingZonesListPageProps> = ({
         </div>
         <div>
           <RequirePermissions
-            userPermissions={userPermissions}
             requiredPermissions={[PermissionEnum.MANAGE_SETTINGS]}
           >
             <ShippingWeightUnitForm

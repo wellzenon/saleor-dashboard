@@ -5,7 +5,6 @@ import {
   TableFooter,
   TableRow
 } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
 import Checkbox from "@saleor/components/Checkbox";
 import IconButtonTableCell from "@saleor/components/IconButtonTableCell";
 import ResponsiveTable from "@saleor/components/ResponsiveTable";
@@ -13,7 +12,8 @@ import Skeleton from "@saleor/components/Skeleton";
 import TableCellHeader from "@saleor/components/TableCellHeader";
 import TableHead from "@saleor/components/TableHead";
 import TablePagination from "@saleor/components/TablePagination";
-import { makeStyles } from "@saleor/macaw-ui";
+import { MenuFragment } from "@saleor/graphql";
+import { DeleteIcon, makeStyles } from "@saleor/macaw-ui";
 import { maybe, renderCollection } from "@saleor/misc";
 import { MenuListUrlSortField } from "@saleor/navigation/urls";
 import { ListActions, ListProps, SortPage } from "@saleor/types";
@@ -22,13 +22,11 @@ import { getFooterColSpanWithBulkActions } from "@saleor/utils/tables";
 import React from "react";
 import { FormattedMessage } from "react-intl";
 
-import { MenuList_menus_edges_node } from "../../types/MenuList";
-
 export interface MenuListProps
   extends ListProps,
     ListActions,
     SortPage<MenuListUrlSortField> {
-  menus: MenuList_menus_edges_node[];
+  menus: MenuFragment[];
   onDelete: (id: string) => void;
 }
 
@@ -41,7 +39,7 @@ const useStyles = makeStyles(
       colTitle: {}
     },
     colAction: {
-      width: 80
+      width: 84
     },
     colItems: {
       textAlign: "right"

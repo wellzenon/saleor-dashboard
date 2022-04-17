@@ -1,12 +1,15 @@
-import useForm, { FormChange, SubmitPromise } from "@saleor/hooks/useForm";
+import { useExitFormDialog } from "@saleor/components/Form/useExitFormDialog";
+import { FulfillmentStatus, OrderDetailsFragment } from "@saleor/graphql";
+import useForm, {
+  CommonUseFormResultWithHandlers,
+  SubmitPromise
+} from "@saleor/hooks/useForm";
 import useFormset, {
   FormsetChange,
   FormsetData
 } from "@saleor/hooks/useFormset";
-import { OrderDetails_order } from "@saleor/orders/types/OrderDetails";
-import { FulfillmentStatus } from "@saleor/types/globalTypes";
-import handleFormSubmit from "@saleor/utils/handlers/handleFormSubmit";
-import React, { useState } from "react";
+import useHandleFormSubmit from "@saleor/hooks/useHandleFormSubmit";
+import React, { useEffect } from "react";
 
 import { OrderRefundAmountCalculationMode } from "../OrderRefundPage/form";
 import {
@@ -55,17 +58,14 @@ export interface OrderReturnFormData extends OrderReturnData {
 
 export type OrderRefundSubmitData = OrderReturnFormData;
 
-export interface UseOrderRefundFormResult {
-  change: FormChange;
-  hasChanged: boolean;
-  data: OrderReturnFormData;
-  handlers: OrderReturnHandlers;
-  submit: () => Promise<boolean>;
-}
+export type UseOrderRefundFormResult = CommonUseFormResultWithHandlers<
+  OrderReturnFormData,
+  OrderReturnHandlers
+>;
 
 interface OrderReturnProps {
   children: (props: UseOrderRefundFormResult) => React.ReactNode;
-  order: OrderDetails_order;
+  order: OrderDetailsFragment;
   onSubmit: (data: OrderRefundSubmitData) => SubmitPromise;
 }
 
@@ -76,15 +76,24 @@ const getOrderRefundPageFormData = (): OrderReturnData => ({
 });
 
 function useOrderReturnForm(
-  order: OrderDetails_order,
+  order: OrderDetailsFragment,
   onSubmit: (data: OrderRefundSubmitData) => SubmitPromise
 ): UseOrderRefundFormResult {
-  const form = useForm(getOrderRefundPageFormData());
-  const [hasChanged, setHasChanged] = useState(false);
+  const {
+    handleChange,
+    setChanged,
+    hasChanged,
+    data: formData,
+    triggerChange,
+    formId,
+    setIsSubmitDisabled
+  } = useForm(getOrderRefundPageFormData(), undefined, {
+    confirmLeave: true
+  });
 
-  const handleChange: FormChange = (event, cb) => {
-    form.change(event, cb);
-  };
+  const { setExitDialogSubmitRef } = useExitFormDialog({
+    formId
+  });
 
   const unfulfiledItemsQuantites = useFormset<LineItemData, number>(
     getOrderUnfulfilledLines(order).map(getParsedLineData({ initialValue: 0 }))
@@ -215,12 +224,18 @@ function useOrderReturnForm(
     waitingItemsQuantities: waitingItemsQuantities.data,
     itemsToBeReplaced: itemsToBeReplaced.data,
     unfulfilledItemsQuantities: unfulfiledItemsQuantites.data,
-    ...form.data
+    ...formData
   };
 
-  const submit = () => handleFormSubmit(data, onSubmit, setHasChanged);
+  const handleFormSubmit = useHandleFormSubmit({
+    formId,
+    onSubmit,
+    setChanged
+  });
 
-  const triggerChange = () => setHasChanged(true);
+  const submit = () => handleFormSubmit(data);
+
+  useEffect(() => setExitDialogSubmitRef(submit), [submit]);
 
   function handleHandlerChange<T>(callback: (id: string, value: T) => void) {
     return (id: string, value: T) => {
@@ -228,6 +243,14 @@ function useOrderReturnForm(
       callback(id, value);
     };
   }
+
+  const hasAnyItemsSelected =
+    fulfiledItemsQuatities.data.some(({ value }) => !!value) ||
+    waitingItemsQuantities.data.some(({ value }) => !!value) ||
+    unfulfiledItemsQuantites.data.some(({ value }) => !!value);
+
+  const isSaveDisabled = !hasAnyItemsSelected;
+  setIsSubmitDisabled(isSaveDisabled);
 
   return {
     change: handleChange,
@@ -247,7 +270,8 @@ function useOrderReturnForm(
       handleSetMaximalUnfulfiledItemsQuantities
     },
     hasChanged,
-    submit
+    submit,
+    isSaveDisabled
   };
 }
 

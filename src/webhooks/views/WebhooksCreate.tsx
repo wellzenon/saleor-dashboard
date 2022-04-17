@@ -1,16 +1,18 @@
-import { useAppDetails } from "@saleor/apps/queries";
 import { customAppUrl } from "@saleor/apps/urls";
 import { WindowTitle } from "@saleor/components/WindowTitle";
+import {
+  useAppQuery,
+  useWebhookCreateMutation,
+  WebhookEventTypeAsyncEnum
+} from "@saleor/graphql";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
 import { commonMessages } from "@saleor/intl";
-import { WebhookEventTypeEnum } from "@saleor/types/globalTypes";
+import { extractMutationErrors } from "@saleor/misc";
 import React from "react";
 import { useIntl } from "react-intl";
 
-import WebhookCreatePage, { FormData } from "../components/WebhookCreatePage";
-import { useWebhookCreateMutation } from "../mutations";
-import { WebhookCreate as WebhookCreateData } from "../types/WebhookCreate";
+import WebhookDetailsPage, { FormData } from "../components/WebhookDetailsPage";
 import { webhookUrl } from "../urls";
 
 export interface WebhooksCreateProps {
@@ -22,38 +24,42 @@ export const WebhooksCreate: React.FC<WebhooksCreateProps> = ({ id }) => {
   const notify = useNotifier();
   const intl = useIntl();
 
-  const { data } = useAppDetails({ variables: { id } });
+  const { data } = useAppQuery({ variables: { id } });
 
-  const onSubmit = (data: WebhookCreateData) => {
-    if (data.webhookCreate.errors.length === 0) {
-      notify({
-        status: "success",
-        text: intl.formatMessage(commonMessages.savedChanges)
-      });
-      navigate(webhookUrl(data.webhookCreate.webhook.id));
-    }
-  };
   const [webhookCreate, webhookCreateOpts] = useWebhookCreateMutation({
-    onCompleted: onSubmit
+    onCompleted: data => {
+      if (data.webhookCreate.errors.length === 0) {
+        notify({
+          status: "success",
+          text: intl.formatMessage(commonMessages.savedChanges)
+        });
+        navigate(webhookUrl(data.webhookCreate.webhook.id));
+      }
+    }
   });
 
   const handleBack = () => navigate(customAppUrl(id));
 
   const handleSubmit = (data: FormData) =>
-    webhookCreate({
-      variables: {
-        input: {
-          app: id,
-          events: data.allEvents
-            ? [WebhookEventTypeEnum.ANY_EVENTS]
-            : data.events,
-          isActive: data.isActive,
-          name: data.name,
-          secretKey: data.secretKey,
-          targetUrl: data.targetUrl
+    extractMutationErrors(
+      webhookCreate({
+        variables: {
+          input: {
+            app: id,
+            syncEvents: data.syncEvents,
+            asyncEvents: data.asyncEvents.includes(
+              WebhookEventTypeAsyncEnum.ANY_EVENTS
+            )
+              ? [WebhookEventTypeAsyncEnum.ANY_EVENTS]
+              : data.asyncEvents,
+            isActive: data.isActive,
+            name: data.name,
+            secretKey: data.secretKey,
+            targetUrl: data.targetUrl
+          }
         }
-      }
-    });
+      })
+    );
 
   return (
     <>
@@ -63,7 +69,7 @@ export const WebhooksCreate: React.FC<WebhooksCreateProps> = ({ id }) => {
           description: "window title"
         })}
       />
-      <WebhookCreatePage
+      <WebhookDetailsPage
         appName={data?.app?.name}
         disabled={false}
         errors={webhookCreateOpts.data?.webhookCreate.errors || []}

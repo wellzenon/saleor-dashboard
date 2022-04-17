@@ -1,18 +1,16 @@
-import { Button, Typography } from "@material-ui/core";
+import { Typography } from "@material-ui/core";
 import Container from "@saleor/components/Container";
 import PageHeader from "@saleor/components/PageHeader";
-import { Backlink } from "@saleor/macaw-ui";
-import { makeStyles } from "@saleor/macaw-ui";
+import { AddressTypeEnum, CustomerAddressesFragment } from "@saleor/graphql";
+import { Backlink, Button, makeStyles } from "@saleor/macaw-ui";
 import { getStringOrPlaceholder, renderCollection } from "@saleor/misc";
 import React from "react";
 import { defineMessages, useIntl } from "react-intl";
 
-import { AddressTypeEnum } from "../../../types/globalTypes";
-import { CustomerAddresses_user } from "../../types/CustomerAddresses";
 import CustomerAddress from "../CustomerAddress/CustomerAddress";
 
 export interface CustomerAddressListPageProps {
-  customer: CustomerAddresses_user;
+  customer: CustomerAddressesFragment;
   disabled: boolean;
   onAdd: () => void;
   onBack: () => void;
@@ -110,7 +108,7 @@ const CustomerAddressListPage: React.FC<CustomerAddressListPageProps> = props =>
               : intl.formatMessage(messages.noNameToShow)
           }
         >
-          <Button color="primary" variant="contained" onClick={onAdd}>
+          <Button variant="primary" onClick={onAdd} data-test-id="add-address">
             {intl.formatMessage(messages.addAddress)}
           </Button>
         </PageHeader>
@@ -125,8 +123,7 @@ const CustomerAddressListPage: React.FC<CustomerAddressListPageProps> = props =>
           </Typography>
           <Button
             className={classes.addButton}
-            color="primary"
-            variant="contained"
+            variant="primary"
             onClick={onAdd}
           >
             {intl.formatMessage(messages.addAddress)}

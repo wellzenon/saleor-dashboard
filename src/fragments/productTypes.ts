@@ -1,10 +1,7 @@
-import gql from "graphql-tag";
-
-import { attributeFragment } from "./attributes";
-import { metadataFragment } from "./metadata";
+import { gql } from "@apollo/client";
 
 export const productTypeFragment = gql`
-  fragment ProductTypeFragment on ProductType {
+  fragment ProductType on ProductType {
     id
     name
     kind
@@ -18,21 +15,18 @@ export const productTypeFragment = gql`
 `;
 
 export const productTypeDetailsFragment = gql`
-  ${attributeFragment}
-  ${productTypeFragment}
-  ${metadataFragment}
-  fragment ProductTypeDetailsFragment on ProductType {
-    ...ProductTypeFragment
-    ...MetadataFragment
+  fragment ProductTypeDetails on ProductType {
+    ...ProductType
+    ...Metadata
     productAttributes {
-      ...AttributeFragment
+      ...Attribute
     }
     variantAttributes {
-      ...AttributeFragment
+      ...Attribute
     }
     assignedVariantAttributes {
       attribute {
-        ...AttributeFragment
+        ...Attribute
       }
       variantSelection
     }

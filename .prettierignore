@@ -1,1 +1,4 @@
 types/
+schema.graphql
+*.generated.*
+src/graphql/extendedTypes.ts

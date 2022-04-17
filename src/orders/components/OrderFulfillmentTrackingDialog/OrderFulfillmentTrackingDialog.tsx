@@ -1,5 +1,4 @@
 import {
-  Button,
   Dialog,
   DialogActions,
   DialogContent,
@@ -7,14 +6,14 @@ import {
   DialogTitle,
   TextField
 } from "@material-ui/core";
-import ConfirmButton, {
-  ConfirmButtonTransitionState
-} from "@saleor/components/ConfirmButton";
+import BackButton from "@saleor/components/BackButton";
+import ConfirmButton from "@saleor/components/ConfirmButton";
 import Form from "@saleor/components/Form";
 import FormSpacer from "@saleor/components/FormSpacer";
-import { OrderErrorFragment } from "@saleor/fragments/types/OrderErrorFragment";
+import { OrderErrorFragment } from "@saleor/graphql";
 import useModalDialogErrors from "@saleor/hooks/useModalDialogErrors";
 import { buttonMessages } from "@saleor/intl";
+import { ConfirmButtonTransitionState } from "@saleor/macaw-ui";
 import { getFormErrors } from "@saleor/utils/errors";
 import getOrderErrorMessage from "@saleor/utils/errors/order";
 import React from "react";
@@ -47,9 +46,13 @@ const OrderFulfillmentTrackingDialog: React.FC<OrderFulfillmentTrackingDialogPro
   const formFields = ["trackingNumber"];
   const formErrors = getFormErrors(formFields, errors);
 
+  const initialData: FormData = {
+    trackingNumber: trackingNumber || ""
+  };
+
   return (
     <Dialog onClose={onClose} open={open} fullWidth maxWidth="xs">
-      <Form initial={{ trackingNumber }} onSubmit={onConfirm}>
+      <Form initial={initialData} onSubmit={onConfirm}>
         {({ change, data, submit }) => (
           <>
             <DialogTitle>
@@ -87,13 +90,9 @@ const OrderFulfillmentTrackingDialog: React.FC<OrderFulfillmentTrackingDialogPro
               )}
             </DialogContent>
             <DialogActions>
-              <Button onClick={onClose}>
-                <FormattedMessage {...buttonMessages.back} />
-              </Button>
+              <BackButton onClick={onClose} />
               <ConfirmButton
                 transitionState={confirmButtonState}
-                color="primary"
-                variant="contained"
                 onClick={submit}
               >
                 <FormattedMessage {...buttonMessages.confirm} />

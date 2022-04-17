@@ -1,18 +1,13 @@
-import { webhooksFragment } from "@saleor/fragments/webhooks";
-import makeQuery from "@saleor/hooks/makeQuery";
-import gql from "graphql-tag";
+import { gql } from "@apollo/client";
 
-import {
-  WebhookDetails,
-  WebhookDetailsVariables
-} from "./types/WebhookDetails";
-
-const webhooksDetails = gql`
-  ${webhooksFragment}
+export const webhooksDetails = gql`
   query WebhookDetails($id: ID!) {
     webhook(id: $id) {
-      ...WebhookFragment
-      events {
+      ...Webhook
+      syncEvents {
+        eventType
+      }
+      asyncEvents {
         eventType
       }
       secretKey
@@ -20,8 +15,3 @@ const webhooksDetails = gql`
     }
   }
 `;
-
-export const useWebhooksDetailsQuery = makeQuery<
-  WebhookDetails,
-  WebhookDetailsVariables
->(webhooksDetails);

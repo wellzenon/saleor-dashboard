@@ -1,12 +1,19 @@
+import {
+  useCreateShippingZoneMutation,
+  useShopCountriesQuery
+} from "@saleor/graphql";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
 import useShop from "@saleor/hooks/useShop";
 import { commonMessages } from "@saleor/intl";
+import { extractMutationErrors } from "@saleor/misc";
+import { mapCountriesToCountriesCodes } from "@saleor/utils/maps";
 import React from "react";
 import { useIntl } from "react-intl";
 
-import ShippingZoneCreatePage from "../components/ShippingZoneCreatePage";
-import { useShippingZoneCreate } from "../mutations";
+import ShippingZoneCreatePage, {
+  ShippingZoneCreateFormData
+} from "../components/ShippingZoneCreatePage";
 import { shippingZonesListUrl, shippingZoneUrl } from "../urls";
 
 const ShippingZoneCreate: React.FC<{}> = () => {
@@ -15,7 +22,18 @@ const ShippingZoneCreate: React.FC<{}> = () => {
   const shop = useShop();
   const intl = useIntl();
 
-  const [createShippingZone, createShippingZoneOpts] = useShippingZoneCreate({
+  const { data: restWorldCountries } = useShopCountriesQuery({
+    variables: {
+      filter: {
+        attachedToShippingZones: false
+      }
+    }
+  });
+
+  const [
+    createShippingZone,
+    createShippingZoneOpts
+  ] = useCreateShippingZoneMutation({
     onCompleted: data => {
       if (data.shippingZoneCreate.errors.length === 0) {
         notify({
@@ -26,19 +44,26 @@ const ShippingZoneCreate: React.FC<{}> = () => {
       }
     }
   });
+
+  const handleSubmit = (data: ShippingZoneCreateFormData) =>
+    extractMutationErrors(
+      createShippingZone({
+        variables: {
+          input: data
+        }
+      })
+    );
+
   return (
     <ShippingZoneCreatePage
       countries={shop?.countries || []}
+      restWorldCountries={
+        mapCountriesToCountriesCodes(restWorldCountries?.shop?.countries) || []
+      }
       disabled={createShippingZoneOpts.loading}
       errors={createShippingZoneOpts.data?.shippingZoneCreate.errors || []}
       onBack={() => navigate(shippingZonesListUrl())}
-      onSubmit={formData =>
-        createShippingZone({
-          variables: {
-            input: formData
-          }
-        })
-      }
+      onSubmit={handleSubmit}
       saveButtonBarState={createShippingZoneOpts.status}
     />
   );

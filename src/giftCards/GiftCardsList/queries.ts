@@ -1,20 +1,14 @@
-import { fragmentUserBase } from "@saleor/fragments/auth";
-import { fragmentMoney } from "@saleor/fragments/products";
-import makeQuery from "@saleor/hooks/makeQuery";
-import gql from "graphql-tag";
-
-import { GiftCardList, GiftCardListVariables } from "./types/GiftCardList";
-import { GiftCardProductsCount } from "./types/GiftCardProductsCount";
+import { gql } from "@apollo/client";
+import { getOperationAST } from "graphql";
 
 export const giftCardList = gql`
-  ${fragmentUserBase}
-  ${fragmentMoney}
   query GiftCardList(
     $first: Int
     $after: String
     $last: Int
     $before: String
     $filter: GiftCardFilterInput
+    $sort: GiftCardSortingInput
   ) {
     giftCards(
       first: $first
@@ -22,19 +16,22 @@ export const giftCardList = gql`
       before: $before
       last: $last
       filter: $filter
+      sortBy: $sort
     ) {
       edges {
         node {
           id
           usedByEmail
-          displayCode
+          last4CodeChars
           isActive
           expiryDate
           product {
             id
             name
           }
-          tag
+          tags {
+            name
+          }
           usedBy {
             ...UserBase
           }
@@ -43,6 +40,7 @@ export const giftCardList = gql`
           }
         }
       }
+      totalCount
       pageInfo {
         endCursor
         hasNextPage
@@ -53,10 +51,15 @@ export const giftCardList = gql`
   }
 `;
 
-export const useGiftCardListQuery = makeQuery<
-  GiftCardList,
-  GiftCardListVariables
->(giftCardList);
+export const GIFT_CARD_LIST_QUERY = getOperationAST(giftCardList).name.value;
+
+export const giftCardTotalCount = gql`
+  query GiftCardTotalCount {
+    giftCards {
+      totalCount
+    }
+  }
+`;
 
 export const giftCardProductsCount = gql`
   query GiftCardProductsCount {
@@ -68,8 +71,3 @@ export const giftCardProductsCount = gql`
     }
   }
 `;
-
-export const useGiftCardProductsCountQuery = makeQuery<
-  GiftCardProductsCount,
-  never
->(giftCardProductsCount);

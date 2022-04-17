@@ -1,15 +1,9 @@
-import makeQuery from "@saleor/hooks/makeQuery";
-import gql from "graphql-tag";
+import { gql } from "@apollo/client";
 
-import { ChannelCurrencies } from "./types/ChannelCurrencies";
-
-const channelCurrencies = gql`
+export const channelCurrencies = gql`
   query ChannelCurrencies {
     shop {
       channelCurrencies
     }
   }
 `;
-export const useChannelCurrencies = makeQuery<ChannelCurrencies, {}>(
-  channelCurrencies
-);
